@@ -36,6 +36,7 @@ export function listBodyweights(db: DB, from?: string, to?: string): Bodyweight[
 
 // ---------------------------------------------------------------------------
 // Nutrition targets: simple, transparent rules of thumb based on body weight.
+// Not shown in v1 (no profile for accurate targets); kept so the table, backups and restore stay compatible.
 // ---------------------------------------------------------------------------
 
 export type Goal = NutritionTarget['goal'];

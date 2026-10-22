@@ -9,7 +9,7 @@ import { WeekStrip } from '@/components/week-strip';
 import { addDays, isoDate } from '@/core/dates';
 import { displayToKg, formatWeight } from '@/core/units';
 import { getDb } from '@/db/client';
-import { currentNutritionTarget, latestBodyweight, logBodyweight, setNutritionTarget, type Goal } from '@/db/repositories/body';
+import { latestBodyweight, logBodyweight } from '@/db/repositories/body';
 import { getActiveEnrolment, programDayPlan } from '@/db/repositories/enrolments';
 import { listHealthDays } from '@/db/repositories/health';
 import { reviewState } from '@/db/repositories/planner';
@@ -50,13 +50,12 @@ export default function TrainScreen() {
       review: reviewState(db, enrolment),
       health: listHealthDays(db, addDays(today, -30), today),
       weight: latestBodyweight(db),
-      target: currentNutritionTarget(db, today),
     };
   });
   const [weightText, setWeightText] = useState('');
 
   if (!data) return null;
-  const { settings, enrolment, template, plan, week, dayLog, inProgress, weight, target, health, review } = data;
+  const { settings, enrolment, template, plan, week, dayLog, inProgress, weight, health, review } = data;
   const unit = settings.units;
   const fail = (title: string, e: unknown) => Alert.alert(title, e instanceof Error ? e.message : String(e));
 
@@ -117,15 +116,6 @@ export default function TrainScreen() {
       refresh();
     } catch (e) {
       fail('Body weight', e);
-    }
-  };
-
-  const chooseTarget = (goal: Goal) => {
-    try {
-      setNutritionTarget(getDb(), today, goal, 'moderate');
-      refresh();
-    } catch (e) {
-      fail('Nutrition', e);
     }
   };
 
@@ -368,27 +358,6 @@ export default function TrainScreen() {
           <Field value={weightText} onChangeText={setWeightText} placeholder={`Today (${unit})`} keyboardType="decimal-pad" style={{ flex: 1 }} onSubmitEditing={saveWeight} />
           <Button title="Log" compact onPress={saveWeight} disabled={!weightText} />
         </Row>
-      </Card>
-
-      {/* Nutrition */}
-      <SectionHeader title="Nutrition target" />
-      <Card>
-        {target ? (
-          <StatStrip>
-            <Stat value={String(target.kcal)} label="kcal" />
-            <Stat value={`${target.proteinG}g`} label="Protein" />
-            <Stat value={`${target.carbsG}g`} label="Carbs" />
-            <Stat value={`${target.fatG}g`} label="Fat" />
-          </StatStrip>
-        ) : (
-          <Body muted>Pick a goal to get daily calories and macros from your latest weight.</Body>
-        )}
-        <Row>
-          {(['cut', 'maintain', 'gain'] as Goal[]).map((g) => (
-            <Button key={g} compact title={g === 'gain' ? 'Lean gain' : g[0].toUpperCase() + g.slice(1)} variant={target?.goal === g ? 'primary' : 'secondary'} onPress={() => chooseTarget(g)} />
-          ))}
-        </Row>
-        {target ? <Small>Based on {formatWeight(target.basedOnKg, unit)} and moderate activity.</Small> : null}
       </Card>
     </Screen>
   );
