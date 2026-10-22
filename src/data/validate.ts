@@ -17,6 +17,7 @@
 import { getTableColumns } from 'drizzle-orm';
 
 import { isSafeWebUrl } from '@/core/safe-url';
+import { readScheme } from '@/core/scheme';
 import {
   DATA_TABLES,
   HEALTH_SOURCES,
@@ -81,7 +82,7 @@ const COLUMN_RULES: Partial<Record<DataTableName, Record<string, Check>>> = {
   exercises: { pattern: oneOf(MOVEMENT_PATTERNS), secondaryMuscles: jsonStringArray, mediaUrl: isSafeWebUrl },
   program_templates: { method: oneOf(PROGRESSION_METHODS), level: oneOf(['beginner', 'intermediate', 'advanced']) },
   phases: { kind: oneOf(PHASE_KINDS) },
-  program_exercises: { rule: oneOf(PROGRESSION_RULES) },
+  program_exercises: { rule: oneOf(PROGRESSION_RULES), repScheme: (v) => typeof v === 'string' && readScheme(v) != null },
   enrolments: { status: oneOf(['active', 'completed', 'abandoned']), dayOrder: jsonIntArray, startedOn: isoDate },
   enrolment_swaps: { scope: oneOf(['program', 'session']) },
   sessions: { status: oneOf(SESSION_STATUSES), adjustments: jsonObject, date: isoDate },

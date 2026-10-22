@@ -9,6 +9,7 @@
 import { and, asc, eq, isNull } from 'drizzle-orm';
 
 import { uuid } from '@/core/ids';
+import { formatScheme, parseScheme, readScheme, type RepScheme } from '@/core/scheme';
 import { normaliseTempo } from '@/core/tempo';
 import { GROUP_LABEL, groupOf, type MuscleGroup } from '@/core/volume';
 import { defaultTempo } from '@/db/seed/tempo-defaults';
@@ -32,6 +33,8 @@ export type DraftSlot = {
   warmupSets: number;
   tempo: string | null;
   incrementKg: number | null;
+  /** Optional per-set reps, builder text: "12,10,8,8", "20,20,F", weeks separated by | */
+  repScheme?: string | null;
 };
 
 export type DraftDay = { id?: string; name: string; isRest: boolean; slots: DraftSlot[] };
@@ -113,6 +116,15 @@ export function validateDraft(d: ProgramDraft): void {
       if (!inRange(s.warmupSets, LIMITS.warmups)) throw new Error(`${where}: 0–4 warm-up sets`);
       if (s.tempo && !normaliseTempo(s.tempo)) throw new Error(`${where}: tempo looks like 3/1/X/1 (down / pause / up / pause)`);
       if (s.rule === 'rpe' && s.targetRpe == null) throw new Error(`${where}: RPE-based progression needs a target RPE`);
+      if (s.repScheme?.trim()) {
+        let scheme: RepScheme | null;
+        try {
+          scheme = parseScheme(s.repScheme);
+        } catch (e) {
+          throw new Error(`${where}: reps per set: ${e instanceof Error ? e.message : String(e)}`);
+        }
+        if (scheme?.some((w) => w.length !== s.sets)) throw new Error(`${where}: reps per set needs ${s.sets} entr${s.sets === 1 ? 'y' : 'ies'} per week to match Sets`);
+      }
     });
   });
 }
@@ -194,7 +206,10 @@ export function saveProgram(db: DB, draft: ProgramDraft, templateId?: string): s
       .where(and(eq(phases.templateId, id), isNull(phases.deletedAt)))
       .run();
     if (phasesFit(draft)) {
-      for (const p of draft.phases!) tx.insert(phases).values({ id: uuid(), templateId: id, ...p }).run();
+      for (const p of draft.phases!)
+        tx.insert(phases)
+          .values({ id: uuid(), templateId: id, ...p })
+          .run();
     } else {
       const deload = draft.deloadLastWeek && draft.weeks >= 2;
       tx.insert(phases)
@@ -254,6 +269,7 @@ export function saveProgram(db: DB, draft: ProgramDraft, templateId?: string): s
           restS: s.restS,
           rule: s.rule,
           incrementKg: s.incrementKg,
+          repScheme: s.repScheme?.trim() ? JSON.stringify(parseScheme(s.repScheme)) : null,
           deletedAt: null,
         };
         const existing = s.id ? tx.select().from(programExercises).where(eq(programExercises.id, s.id)).get() : undefined;
@@ -313,6 +329,7 @@ export function draftFromTemplate(db: DB, templateId: string): ProgramDraft {
         warmupSets: slot.warmupSets,
         tempo: slot.tempo,
         incrementKg: slot.incrementKg,
+        repScheme: formatScheme(readScheme(slot.repScheme)) || null,
       })),
     })),
   };

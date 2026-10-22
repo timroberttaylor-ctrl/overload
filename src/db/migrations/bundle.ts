@@ -45,6 +45,13 @@ export const migrationBundle = {
         "when": 1792653131043,
         "tag": "0005_phase_rep_mult",
         "breakpoints": true
+      },
+      {
+        "idx": 6,
+        "version": "6",
+        "when": 1792663519648,
+        "tag": "0006_rep_schemes",
+        "breakpoints": true
       }
     ]
   },
@@ -54,6 +61,7 @@ export const migrationBundle = {
     "m0002": "ALTER TABLE `set_logs` ADD `rest_s` integer;--> statement-breakpoint\nALTER TABLE `set_logs` ADD `target_note` text;",
     "m0003": "ALTER TABLE `checkins` ADD `enrolment_id` text;--> statement-breakpoint\nALTER TABLE `checkins` ADD `program_week` integer;--> statement-breakpoint\nALTER TABLE `week_plans` ADD `program_week` integer;--> statement-breakpoint\nALTER TABLE `week_plans` ADD `details` text;",
     "m0004": "ALTER TABLE `set_logs` ADD `note` text;",
-    "m0005": "ALTER TABLE `phases` ADD `rep_mult` real;"
+    "m0005": "ALTER TABLE `phases` ADD `rep_mult` real;",
+    "m0006": "ALTER TABLE `program_exercises` ADD `rep_scheme` text;--> statement-breakpoint\nALTER TABLE `set_logs` ADD `to_failure` integer DEFAULT false NOT NULL;"
   }
 } as const;

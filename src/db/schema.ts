@@ -152,6 +152,11 @@ export const programExercises = sqliteTable(
     incrementKg: real('increment_kg'),
     failsBeforeReset: integer('fails_before_reset').notNull().default(3),
     resetPct: real('reset_pct').notNull().default(0.9),
+    /**
+     * Optional per-set rep targets, JSON: one scheme per week, rotating by program week,
+     * e.g. [[10,10,10,10],[12,10,8,8],[8,6,6,10]]. "F" is a set taken to failure.
+     */
+    repScheme: text('rep_scheme'),
     ...audit,
   },
   (t) => [index('program_exercises_day_idx').on(t.templateDayId)],
@@ -265,6 +270,8 @@ export const setLogs = sqliteTable(
     targetNote: text('target_note'),
     /** The lifter's own note on this set, e.g. "left shoulder felt off" */
     note: text('note'),
+    /** Take this set to failure (as many reps as possible); it has no rep target */
+    toFailure: integer('to_failure', { mode: 'boolean' }).notNull().default(false),
     weightKg: real('weight_kg'),
     reps: integer('reps'),
     rpe: real('rpe'),

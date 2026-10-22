@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
+import { describeEntries } from '@/core/scheme';
 import type { ResolvedSlot } from '@/db/repositories/enrolments';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -40,7 +41,7 @@ export function DayPlanList({ slots, onOpenExercise }: { slots: ResolvedSlot[]; 
                 <View style={{ flex: 1, gap: 4 }}>
                   <Text style={[styles.name, { color: t.text }]}>{s.exercise.name}</Text>
                   <Small>
-                    {s.workingSets} × {repRange(s.slot.repMin, s.slot.repMax)}
+                    {s.repTargets ? describeEntries(s.repTargets.map((r) => r ?? 'F')) : `${s.workingSets} × ${repRange(s.slot.repMin, s.slot.repMax)}`}
                     {s.exercise.pattern === 'carry' ? ' m' : ''}
                     {s.slot.warmupSets ? ` · ${s.slot.warmupSets} warm-up` : ''}
                     {shownRpe(s) != null ? ` · RPE ${shownRpe(s)}` : ''}

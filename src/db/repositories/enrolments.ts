@@ -6,6 +6,7 @@ import { PLAN_LABEL, REGION_LABEL, regionAffects, setsUnderPlan, type WeekDecisi
 
 import { enrolments, enrolmentSwaps, exercises, weekPlans } from '../schema';
 import type { DB } from '../types';
+import { fitScheme, readScheme, schemeForWeek } from '@/core/scheme';
 import { getTemplateDetail, phaseForWeek, repsForPhase, setsForPhase, type DayDetail, type ExerciseRow, type ProgramExercise } from './programs';
 import { isIntArray, safeJsonParse } from '@/core/json';
 
@@ -71,6 +72,8 @@ export type ResolvedSlot = {
   adjust?: Adjustments;
   /** Short label for those changes, e.g. "Deload: 90% load" */
   planNote?: string;
+  /** Per-set rep targets from the slot's rep scheme for this week (null = to failure) */
+  repTargets?: (number | null)[];
 };
 
 export type SessionAdjust = Adjustments & { deload?: boolean };
@@ -160,12 +163,19 @@ export function programDayPlan(db: DB, enrolment: Enrolment, programDay: number)
     const ex = swapped ?? exercise;
     const isAccessory = !ex.isCompound || ex.pattern === 'isolation';
     const { adjust, note } = slotAdjust(weekPlan, phase.kind === 'deload', ex);
+    const workingSets = setsUnderPlan(setsForPhase(slot.sets, phase.volumeMult), phase.kind === 'deload' ? null : weekPlan, isAccessory, slot.id);
+    // A rep scheme sets reps set by set (and rotates weekly); otherwise main lifts take the phase's
+    // rep range (e.g. 8–10 → 5–6 when intensifying). Same slot id either way, so history carries on.
+    const scheme = readScheme(slot.repScheme);
+    const repTargets = scheme ? fitScheme(schemeForWeek(scheme, week), workingSets) : undefined;
+    const numeric = repTargets?.filter((r): r is number => r != null) ?? [];
+    const reps = numeric.length ? { repMin: Math.min(...numeric), repMax: Math.max(...numeric) } : repsForPhase(slot.rule, slot.repMin, slot.repMax, phase.repMult);
     return {
-      // Main lifts take the phase's rep range (e.g. 8–10 → 5–6 when intensifying); same slot id, so history carries on.
-      slot: { ...slot, ...repsForPhase(slot.rule, slot.repMin, slot.repMax, phase.repMult) },
+      slot: { ...slot, ...reps },
       exercise: ex,
       swap,
-      workingSets: setsUnderPlan(setsForPhase(slot.sets, phase.volumeMult), phase.kind === 'deload' ? null : weekPlan, isAccessory, slot.id),
+      workingSets,
+      repTargets,
       targetRpe: phase.rpeTarget ?? slot.targetRpe,
       adjust,
       planNote: note,
@@ -175,10 +185,7 @@ export function programDayPlan(db: DB, enrolment: Enrolment, programDay: number)
   return { programDay: clamped, week, totalDays, cycleLength, day: detail.day, phase, weekPlan, slots };
 }
 
-export function swapExercise(
-  db: DB,
-  args: { enrolmentId: string; programExerciseId: string; fromExerciseId: string; toExerciseId: string; scope: 'program' | 'session'; programDay?: number },
-): Swap {
+export function swapExercise(db: DB, args: { enrolmentId: string; programExerciseId: string; fromExerciseId: string; toExerciseId: string; scope: 'program' | 'session'; programDay?: number }): Swap {
   if (args.scope === 'session' && args.programDay == null) throw new Error('A session swap needs the program day');
   if (args.fromExerciseId === args.toExerciseId) throw new Error('Pick a different exercise');
   const id = uuid();

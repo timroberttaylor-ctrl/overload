@@ -9,7 +9,8 @@ import { and, asc, desc, eq, gt, gte, inArray, isNull, lt, ne } from 'drizzle-or
 
 import { addDays } from '@/core/dates';
 import { uuid } from '@/core/ids';
-import { bestE1RM, nextTarget, sessionWeight, warmupSets, type Adjustments, type Prescription, type SessionResult, type Target } from '@/core/overload';
+import { bestE1RM, nextTarget, pctOf1RM, sessionWeight, warmupSets, type Adjustments, type Prescription, type SessionResult, type Target } from '@/core/overload';
+import { roundToIncrement } from '@/core/units';
 import { findPRs, volumeKg, type DatedSet, type PR } from '@/core/records';
 
 import { enrolments, exercises, exerciseStates, programExercises, sessions, setLogs } from '../schema';
@@ -52,7 +53,7 @@ export function exerciseResults(db: DB, exerciseId: string, opts: { programExerc
     if (!opts.includeDeload && isDeloadSession(s)) continue;
     const entry = bySession.get(s.id) ?? { date: s.date, startedAt: s.startedAt, planned: 0, sets: [] };
     entry.planned++;
-    if (l.completed && l.weightKg != null && l.reps != null) entry.sets.push({ weightKg: l.weightKg, reps: l.reps, rpe: l.rpe });
+    if (l.completed && l.weightKg != null && l.reps != null) entry.sets.push({ weightKg: l.weightKg, reps: l.reps, rpe: l.rpe, target: l.toFailure ? null : l.targetReps });
     bySession.set(s.id, entry);
   }
   const list = [...bySession.values()]
@@ -102,6 +103,7 @@ export function prescriptionFor(slot: ResolvedSlot, settings: AppSettings): Pres
     roundStepKg: roundStepFor(ex, settings),
     failsBeforeReset: slot.slot.failsBeforeReset,
     resetPct: slot.slot.resetPct,
+    repTargets: slot.repTargets,
   };
 }
 
@@ -160,7 +162,23 @@ function buildSetRows(db: DB, sessionId: string, slot: ResolvedSlot, today: stri
       restS: 60,
     }),
   );
-  target.reps.forEach((r, i) =>
+  // Per-set targets: a rep scheme (pyramids, failure sets) or the engine's flat targets.
+  const perSet: (number | null)[] = slot.repTargets ?? target.reps;
+  // With a scheme on an RPE lift, each set gets its own load from the e1RM (more reps → lighter),
+  // never above the engine's capped working weight. Deloads and first sessions keep one weight.
+  const hold = !!adjust?.loadPct || !!adjust?.noIncrease || target.kind === 'lighter' || target.kind === 'first';
+  const step = roundStepFor(ex, settings);
+  let lastWeight = target.weightKg;
+  const weightFor = (reps: number | null): number | null => {
+    if (target.weightKg == null) return null;
+    if (reps == null) return lastWeight; // to failure: same load as the set before
+    if (!slot.repTargets || slot.slot.rule !== 'rpe' || hold || target.e1rmKg == null) return target.weightKg;
+    const w = roundToIncrement(target.e1rmKg * pctOf1RM(reps, target.rpe ?? 8), step, 'down');
+    return Math.max(0, Math.min(w, target.weightKg));
+  };
+  perSet.forEach((r, i) => {
+    const w = weightFor(r);
+    lastWeight = w;
     rows.push({
       id: uuid(),
       sessionId,
@@ -170,15 +188,16 @@ function buildSetRows(db: DB, sessionId: string, slot: ResolvedSlot, today: stri
       exerciseOrder: slot.slot.position,
       setIndex: warm.length + i,
       setType: 'working',
-      targetWeightKg: target.weightKg,
+      targetWeightKg: w,
       targetReps: r,
-      targetRpe: target.rpe,
-      weightKg: target.weightKg,
+      targetRpe: r == null ? 10 : target.rpe,
+      weightKg: w,
       reps: r,
+      toFailure: r == null,
       restS: slot.slot.restS,
       targetNote: i === 0 ? noteFor(ex, slot, target) : null,
-    }),
-  );
+    });
+  });
   return rows;
 }
 

@@ -53,20 +53,54 @@ export function SetRow({ set, label, unit, mode, highlighted, pr, onSaveDraft, o
         )}
       </View>
       <View style={styles.cell}>
-        <TextInput value={w} onChangeText={setW} onEndEditing={save} keyboardType="decimal-pad" placeholder={unit} placeholderTextColor={t.textSecondary} style={input} selectTextOnFocus inputAccessoryViewID={KEYBOARD_DONE_ID} accessibilityLabel={`${label} weight`} />
+        <TextInput
+          value={w}
+          onChangeText={setW}
+          onEndEditing={save}
+          keyboardType="decimal-pad"
+          placeholder={unit}
+          placeholderTextColor={t.textSecondary}
+          style={input}
+          selectTextOnFocus
+          inputAccessoryViewID={KEYBOARD_DONE_ID}
+          accessibilityLabel={`${label} weight`}
+        />
       </View>
       <View style={styles.cellSmall}>
-        <TextInput value={r} onChangeText={setR} onEndEditing={save} keyboardType="number-pad" placeholder="reps" placeholderTextColor={t.textSecondary} style={input} selectTextOnFocus inputAccessoryViewID={KEYBOARD_DONE_ID} accessibilityLabel={`${label} reps`} />
+        <TextInput
+          value={r}
+          onChangeText={setR}
+          onEndEditing={save}
+          keyboardType="number-pad"
+          placeholder={set.toFailure ? 'max' : 'reps'}
+          placeholderTextColor={t.textSecondary}
+          style={input}
+          selectTextOnFocus
+          inputAccessoryViewID={KEYBOARD_DONE_ID}
+          accessibilityLabel={set.toFailure ? `${label} reps, to failure` : `${label} reps`}
+        />
       </View>
       <View style={styles.cellSmall}>
-        <TextInput value={rpe} onChangeText={setRpe} onEndEditing={save} keyboardType="decimal-pad" placeholder={set.targetRpe != null ? `@${set.targetRpe}` : 'RPE'} placeholderTextColor={t.textSecondary} style={input} selectTextOnFocus inputAccessoryViewID={KEYBOARD_DONE_ID} accessibilityLabel={`${label} RPE`} />
+        <TextInput
+          value={rpe}
+          onChangeText={setRpe}
+          onEndEditing={save}
+          keyboardType="decimal-pad"
+          placeholder={set.targetRpe != null ? `@${set.targetRpe}` : 'RPE'}
+          placeholderTextColor={t.textSecondary}
+          style={input}
+          selectTextOnFocus
+          inputAccessoryViewID={KEYBOARD_DONE_ID}
+          accessibilityLabel={`${label} RPE`}
+        />
       </View>
       {mode === 'player' ? (
         <Pressable
           onPress={() => onToggle?.(values())}
           accessibilityRole="button"
           accessibilityLabel={done ? `Undo ${label}` : `Log ${label}`}
-          style={[styles.tick, { backgroundColor: done ? t.accent : 'transparent', borderColor: done ? t.accent : t.border }]}>
+          style={[styles.tick, { backgroundColor: done ? t.accent : 'transparent', borderColor: done ? t.accent : t.border }]}
+        >
           <Ionicons name="checkmark" size={20} color={done ? t.accentText : t.textSecondary} />
         </Pressable>
       ) : null}

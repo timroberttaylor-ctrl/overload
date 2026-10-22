@@ -8,6 +8,7 @@ import { isoDate } from '@/core/dates';
 import { getDb } from '@/db/client';
 import { copyProgram } from '@/db/repositories/builder';
 import { getActiveEnrolment, startProgram } from '@/db/repositories/enrolments';
+import { fitScheme, readScheme, schemeForWeek } from '@/core/scheme';
 import { getTemplateDetail, repsForPhase, setsForPhase } from '@/db/repositories/programs';
 import { useDbQuery } from '@/hooks/use-db-query';
 import { useTheme } from '@/hooks/use-theme';
@@ -142,7 +143,11 @@ export default function ProgramDetailScreen() {
           {open === day.dayIndex ? (
             <View style={{ marginTop: 8 }}>
               <DayPlanList
-                slots={slots.map(({ slot, exercise }) => ({ slot, exercise, workingSets: setsForPhase(slot.sets, 1), targetRpe: slot.targetRpe }))}
+                slots={slots.map(({ slot, exercise }) => {
+                  // Week 1 of the program, as you'd see it on day one.
+                  const scheme = readScheme(slot.repScheme);
+                  return { slot, exercise, workingSets: setsForPhase(slot.sets, 1), targetRpe: slot.targetRpe, repTargets: scheme ? fitScheme(schemeForWeek(scheme, 1), slot.sets) : undefined };
+                })}
                 onOpenExercise={(exId) => router.push({ pathname: '/exercise/[id]', params: { id: exId } })}
               />
             </View>

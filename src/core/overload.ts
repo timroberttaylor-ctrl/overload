@@ -10,7 +10,8 @@ import { roundToIncrement } from './units';
 
 export type RuleKind = 'linear' | 'double' | 'rpe' | 'none';
 
-export type LoggedSet = { weightKg: number; reps: number; rpe?: number | null };
+/** `target` is the rep target the set had when it was logged (null: to failure / none). */
+export type LoggedSet = { weightKg: number; reps: number; rpe?: number | null; target?: number | null };
 
 /** One past session of this exercise: completed working sets only, oldest → newest in the history array. */
 export type SessionResult = { date: string; sets: LoggedSet[]; plannedSets: number };
@@ -28,6 +29,11 @@ export type Prescription = {
   failsBeforeReset: number;
   /** Fraction of the current weight to drop back to after repeated failures */
   resetPct: number;
+  /**
+   * Per-set rep targets from a rep scheme (null = to failure). When present, a session succeeds
+   * when every set reached the target it had at the time; a set to failure needs `repMax` reps.
+   */
+  repTargets?: (number | null)[];
 };
 
 export type Adjustments = {
@@ -111,6 +117,17 @@ function evaluate(p: Prescription, s: SessionResult, prev?: SessionResult): Verd
   const sets = s.sets;
   const allDone = sets.length >= s.plannedSets;
   const rpeOk = (x: LoggedSet) => p.targetRpe == null || x.rpe == null || x.rpe <= p.targetRpe + 1;
+  if (p.repTargets && p.rule !== 'rpe') {
+    // Rep scheme: judge each set against its own target (schemes can rotate week to week).
+    const targetOf = (x: LoggedSet, i: number) => (x.target !== undefined ? x.target : (p.repTargets![i] ?? null));
+    if (allDone && sets.every((x, i) => x.reps >= (targetOf(x, i) ?? p.repMax) && (targetOf(x, i) == null || rpeOk(x)))) return 'success';
+    if (p.rule === 'linear' || !allDone) return 'fail';
+    if (prev && sessionWeight(prev.sets) === sessionWeight(sets)) {
+      const total = (r: SessionResult) => r.sets.reduce((t, x) => t + x.reps, 0);
+      return total(s) > total(prev) ? 'progress' : 'fail';
+    }
+    return 'progress';
+  }
   if (p.rule === 'linear') {
     return allDone && sets.every((x) => x.reps >= p.repMin && rpeOk(x)) ? 'success' : 'fail';
   }
@@ -186,7 +203,17 @@ export function nextTarget(args: {
 
   // ---- Tracking only
   if (p.rule === 'none') {
-    return result({ weightKg: w, reps: last.sets.map((s) => s.reps).concat(flat(0)).slice(0, p.sets).map((r) => r || p.repMin), kind: 'track', reason: 'Tracked only: beat last time if you can.', fails: 0 });
+    return result({
+      weightKg: w,
+      reps: last.sets
+        .map((s) => s.reps)
+        .concat(flat(0))
+        .slice(0, p.sets)
+        .map((r) => r || p.repMin),
+      kind: 'track',
+      reason: 'Tracked only: beat last time if you can.',
+      fails: 0,
+    });
   }
 
   // ---- RPE / e1RM based

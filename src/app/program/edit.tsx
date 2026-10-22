@@ -282,6 +282,17 @@ export default function ProgramBuilderScreen() {
                             </Row>
                           </View>
                           <View style={{ gap: 6 }}>
+                            <Small>Reps per set (optional): e.g. 12,10,8,8 · F = to failure · rotate weekly with |, e.g. 10,10,10,10 | 12,10,8,8</Small>
+                            <Field
+                              value={s.repScheme ?? ''}
+                              onChangeText={(v) => updateSlot(day.k, s.k, { repScheme: v || null })}
+                              placeholder={`e.g. ${Array.from({ length: s.sets }, (_, i) => (i === s.sets - 1 ? 'F' : String(s.repMax))).join(',')}`}
+                              autoCapitalize="characters"
+                              autoCorrect={false}
+                              maxLength={120}
+                            />
+                          </View>
+                          <View style={{ gap: 6 }}>
                             <Small>Tempo (optional): down / pause / up / pause in seconds, X = explosive</Small>
                             <Field
                               value={s.tempo ?? ''}

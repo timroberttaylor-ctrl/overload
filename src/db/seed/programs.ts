@@ -2,6 +2,8 @@
  * Starter program templates, written from scratch on well-known public training
  * methods (linear progression, double progression, RPE top sets, block periodisation).
  */
+import type { RepScheme } from '@/core/scheme';
+
 import type { PhaseKind, ProgressionMethod, ProgressionRuleKind } from '../schema';
 
 export type SeedSlot = {
@@ -16,6 +18,8 @@ export type SeedSlot = {
   warmup?: number;
   tempo?: string;
   incrementKg?: number;
+  /** Per-set reps, one scheme per week (rotating); "F" = to failure. `sets` must equal each scheme's length. */
+  scheme?: RepScheme;
 };
 
 export type SeedDay = { name: string; focus: string; rest?: boolean; slots: SeedSlot[] };
@@ -753,19 +757,53 @@ const dumbbellOnly: SeedProgram = {
 // ---------------------------------------------------------------------------
 type OvrldLevel = 'beginner' | 'intermediate' | 'advanced';
 
-const OVRLD_LEVEL = {
-  //               lead-lift sets, other sets, RPE per wave week, rep multiplier per wave week, minutes
-  beginner: { lead: 3, other: 3, rpe: [7.5, 8, 8.5], reps: [1, 0.85, 0.7], minutes: 55 },
-  intermediate: { lead: 4, other: 4, rpe: [8, 8.5, 9], reps: [1, 0.8, 0.6], minutes: 65 },
-  advanced: { lead: 5, other: 4, rpe: [8.5, 9, 9.5], reps: [1, 0.75, 0.5], minutes: 80 },
-} as const;
+const F = 'F' as const;
+const OVRLD_LEVEL: Record<OvrldLevel, { other: number; rpe: [number, number, number]; wave: RepScheme; minutes: number }> = {
+  // Lead-lift wave: week 1 straight sets, week 2 pyramid down, week 3 heavy with a back-off set (then repeat).
+  beginner: {
+    other: 3,
+    rpe: [7.5, 8, 8.5],
+    wave: [
+      [10, 10, 10],
+      [12, 10, 8],
+      [8, 8, 10],
+    ],
+    minutes: 55,
+  },
+  intermediate: {
+    other: 4,
+    rpe: [8, 8.5, 9],
+    wave: [
+      [10, 10, 10, 10],
+      [12, 10, 8, 8],
+      [8, 6, 6, 10],
+    ],
+    minutes: 65,
+  },
+  advanced: {
+    other: 4,
+    rpe: [8.5, 9, 9.5],
+    wave: [
+      [10, 10, 10, 10, 10],
+      [12, 10, 8, 8, 8],
+      [8, 6, 6, 6, 10],
+    ],
+    minutes: 80,
+  },
+};
 
 function ovrld(level: OvrldLevel): SeedProgram {
   const L = OVRLD_LEVEL[level];
   const adv = level === 'advanced';
   const beg = level === 'beginner';
-  // Lead lift of the day: RPE-prescribed, so the wave's rep changes turn into heavier loads.
-  const lead = (id: string, series = 'A') => s(id, series, L.lead, 10, 12, 'rpe', { warmup: 2, restS: series === 'A' && id.includes('curl') ? 75 : 150, rpe: L.rpe[0], tempo: '3/0/X/0' });
+  // Lead lift of the day: RPE-prescribed with a per-set wave, so each set gets its own load from your e1RM.
+  const lead = (id: string, series = 'A') =>
+    s(id, series, L.wave[0].length, 6, 12, 'rpe', { warmup: 2, restS: series === 'A' && id.includes('curl') ? 75 : 150, rpe: L.rpe[0], tempo: '3/0/X/0', scheme: L.wave });
+  // Accessory with a fixed per-set pattern (drop sets, failure finishers); progresses by load once every set hits its target.
+  const pattern = (id: string, series: string, sets: (number | 'F')[], repMin: number, repMax: number, restS: number, tempo?: string) =>
+    s(id, series, sets.length, repMin, repMax, 'double', { restS, tempo, scheme: [sets] });
+  const n = L.other;
+  const fails = (count: number) => Array.from({ length: count }, () => F);
   const acc = (id: string, series: string, repMin: number, repMax: number, restS: number, tempo?: string) => s(id, series, L.other, repMin, repMax, 'double', { restS, tempo });
   const extra = (id: string, series: string, repMin: number, repMax: number, restS: number) => s(id, series, 3, repMin, repMax, 'double', { restS });
 
@@ -777,7 +815,7 @@ function ovrld(level: OvrldLevel): SeedProgram {
         lead('hack_squat'),
         acc('high_bar_heel_squat', 'B', 10, 12, 120, '3/1/X/0'),
         ...(adv ? [extra('walking_lunge', 'C', 10, 12, 90)] : []),
-        acc('leg_extension', adv ? 'D' : 'C', 15, 25, 60, '1/0/1/0'),
+        pattern('leg_extension', adv ? 'D' : 'C', beg ? [30, 20, 15] : [30, 20, 15, 30], 15, 30, 60, '1/0/1/0'),
         acc('seated_db_calf_raise', adv ? 'E' : 'D', 15, 20, 45, '1/0/1/0'),
       ],
     },
@@ -788,7 +826,7 @@ function ovrld(level: OvrldLevel): SeedProgram {
         lead('incline_bench'),
         acc('pec_deck', 'B', 10, 12, 75, '2/2/2/2'),
         acc('close_grip_bench', 'C', 10, 12, 120, '3/1/X/0'),
-        acc('overhead_triceps_ext', 'D', 15, 20, 45, '2/0/1/0'),
+        beg ? acc('overhead_triceps_ext', 'D', 15, 20, 45, '2/0/1/0') : pattern('overhead_triceps_ext', 'D', [20, 20, 20, 20, F], 15, 20, 45, '2/0/1/0'),
         acc('six_way_raise', 'D', 10, 12, 45),
         ...(adv ? [extra('cable_fly', 'E', 12, 15, 60)] : []),
       ],
@@ -800,7 +838,7 @@ function ovrld(level: OvrldLevel): SeedProgram {
         lead('underhand_pulldown'),
         acc('chest_supported_row', 'B', 10, 12, 120, '3/1/X/0'),
         acc('pullover', 'C', 10, 12, 75, '3/3/1/0'),
-        acc('preacher_curl', 'D', 10, 12, 45, '2/0/1/0'),
+        beg ? acc('preacher_curl', 'D', 10, 12, 45, '2/0/1/0') : pattern('preacher_curl', 'D', [12, 12, 12, 12, F], 10, 12, 45, '2/0/1/0'),
         acc('face_pull', 'D', 15, 20, 45, '2/0/1/0'),
         ...(adv ? [extra('single_arm_pulldown', 'E', 12, 15, 60)] : []),
       ],
@@ -826,8 +864,8 @@ function ovrld(level: OvrldLevel): SeedProgram {
         acc('hammer_curl', 'B', 10, 12, 45, '3/1/X/0'),
         acc('cross_body_cable_ext', 'B', 10, 12, 45, '3/1/X/0'),
         acc('lying_incline_lateral', 'C', 12, 15, 30, '2/0/1/0'),
-        acc('lateral_raise', 'C', 12, 20, 30),
-        ...(beg ? [] : [acc('arnold_press', 'C', 8, 15, 90)]),
+        beg ? acc('lateral_raise', 'C', 12, 20, 30) : pattern('lateral_raise', 'C', fails(n), 12, 20, 30),
+        ...(beg ? [] : [pattern('arnold_press', 'C', fails(n), 8, 15, 90)]),
         ...(adv ? [extra('cable_curl', 'D', 12, 15, 45), extra('triceps_pushdown', 'D', 12, 15, 45)] : []),
       ],
     },
@@ -835,16 +873,19 @@ function ovrld(level: OvrldLevel): SeedProgram {
   ];
 
   const wave = (from: number): SeedPhase[] => [
-    { weekFrom: from, weekTo: from, kind: 'accumulation', volumeMult: 1, rpeTarget: L.rpe[0], repMult: L.reps[0] },
-    { weekFrom: from + 1, weekTo: from + 1, kind: 'intensification', volumeMult: 1, rpeTarget: L.rpe[1], repMult: L.reps[1] },
-    { weekFrom: from + 2, weekTo: from + 2, kind: 'realisation', volumeMult: 1, rpeTarget: L.rpe[2], repMult: L.reps[2] },
+    { weekFrom: from, weekTo: from, kind: 'accumulation', volumeMult: 1, rpeTarget: L.rpe[0] },
+    { weekFrom: from + 1, weekTo: from + 1, kind: 'intensification', volumeMult: 1, rpeTarget: L.rpe[1] },
+    { weekFrom: from + 2, weekTo: from + 2, kind: 'realisation', volumeMult: 1, rpeTarget: L.rpe[2] },
   ];
 
   const label = { beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced' }[level];
   const who = {
-    beginner: 'Pick this if you have a few months of gym experience and want a structured body-part split. Three working sets per exercise, moderate effort, and the arm-day triset is cut to a superset so sessions stay under an hour.',
-    intermediate: 'Pick this if you train consistently and want hypertrophy-focused work that still drives strength on the big lifts. Four working sets per exercise with supersets and a shoulder triset to keep sessions dense.',
-    advanced: 'Pick this if you recover well from high volume. Five working sets on each lead lift, an extra exercise on every training day and the most aggressive wave (down to 5–6 rep sets). Take a deload week after the 6 weeks.',
+    beginner:
+      'Pick this if you have a few months of gym experience and want a structured body-part split. Three working sets per exercise, moderate effort, no sets to failure, and the arm-day triset is cut to a superset so sessions stay under an hour.',
+    intermediate:
+      'Pick this if you train consistently and want hypertrophy-focused work that still drives strength on the big lifts. Four working sets per exercise with supersets, to-failure finishers and a shoulder triset to keep sessions dense.',
+    advanced:
+      'Pick this if you recover well from high volume. Five working sets on each lead lift, an extra exercise on every training day, to-failure finishers and the highest effort targets. Take a deload week after the 6 weeks.',
   }[level];
 
   return {
@@ -856,7 +897,7 @@ function ovrld(level: OvrldLevel): SeedProgram {
     minutes: L.minutes,
     summary:
       'The OVRLD signature split: quads, chest, back, hamstrings and arms over six days, with shoulders hit three times. Each day opens with a lead lift on a 3-week wave (volume → heavier → heaviest), run twice.',
-    rationale: `${who} The lead lift of each day moves from 10–12 reps to heavier, lower-rep sets in weeks 2–3 and 5–6, with RPE rising each week; everything else progresses by reps then load. Weeks 3 and 6 are peak weeks, so the weekly review keeps sets as written.`,
+    rationale: `${who} Each day's lead lift runs a 3-week wave twice: straight sets of 10, then a pyramid (${L.wave[1].join('/')}), then heavy sets with a back-off set (${L.wave[2].join('/')}); every set gets its own weight from your strength and RPE rises each week. Accessories progress by reps then load. Weeks 3 and 6 are peak weeks, so the weekly review keeps sets as written.`,
     days,
     phases: [...wave(1), ...wave(4)],
   };

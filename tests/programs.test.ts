@@ -42,19 +42,19 @@ describe('phase rep ranges', () => {
 });
 
 describe('OVRLD signature program', () => {
-  it('waves the lead lift twice over 6 weeks, harder at each level', async () => {
+  it('waves the lead lift set by set over 6 weeks, harder at each level', async () => {
     const { db } = await createTestDb();
-    const reps = (tpl: string) => {
+    const plan = (tpl: string) => {
       const e = startProgram(db, tpl, START);
       const live = db.select().from(enrolments).where(eq(enrolments.id, e.id)).get()!;
       return [1, 2, 3, 4, 5, 6].map((w) => {
         const x = programDayPlan(db, live, (w - 1) * 7 + 1).slots.find((sl) => sl.exercise.id === 'incline_bench')!;
-        return `${x.slot.repMin}-${x.slot.repMax}@${x.targetRpe}x${x.workingSets}`;
+        return `${x.repTargets!.join('/')}@${x.targetRpe}`;
       });
     };
-    expect(reps('tpl_ovrld_beginner')).toEqual(['10-12@7.5x3', '9-10@8x3', '7-8@8.5x3', '10-12@7.5x3', '9-10@8x3', '7-8@8.5x3']);
-    expect(reps('tpl_ovrld_intermediate')).toEqual(['10-12@8x4', '8-10@8.5x4', '6-7@9x4', '10-12@8x4', '8-10@8.5x4', '6-7@9x4']);
-    expect(reps('tpl_ovrld_advanced')).toEqual(['10-12@8.5x5', '8-9@9x5', '5-6@9.5x5', '10-12@8.5x5', '8-9@9x5', '5-6@9.5x5']);
+    expect(plan('tpl_ovrld_beginner')).toEqual(['10/10/10@7.5', '12/10/8@8', '8/8/10@8.5', '10/10/10@7.5', '12/10/8@8', '8/8/10@8.5']);
+    expect(plan('tpl_ovrld_intermediate')).toEqual(['10/10/10/10@8', '12/10/8/8@8.5', '8/6/6/10@9', '10/10/10/10@8', '12/10/8/8@8.5', '8/6/6/10@9']);
+    expect(plan('tpl_ovrld_advanced')).toEqual(['10/10/10/10/10@8.5', '12/10/8/8/8@9', '8/6/6/6/10@9.5', '10/10/10/10/10@8.5', '12/10/8/8/8@9', '8/6/6/6/10@9.5']);
   });
 });
 
