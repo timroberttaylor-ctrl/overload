@@ -326,3 +326,23 @@ export function reviewState(db: DB, enrolment: Enrolment | undefined): ReviewSta
   const plan = getWeekPlan(db, enrolment.id, week);
   return plan ? { status: 'planned', planWeek: week, plan } : { status: 'due', reviewWeek: week - 1, planWeek: week };
 }
+
+/**
+ * Make `week` a deload without a review, e.g. week 1 of a new block straight after a hard one.
+ * Uses the same rules as a planner deload: half the sets, about 90% of last weights, RPE 6 or less.
+ */
+export function planDeloadWeek(db: DB, enrolmentId: string, week: number, date: string): StoredPlan {
+  const decision: WeekDecision = {
+    kind: 'deload',
+    volumeMult: 0.5,
+    rpeCap: 6,
+    noIncrease: true,
+    loadPct: 0.9,
+    extraAccessorySet: false,
+    region: null,
+    warnings: [],
+    reasons: ["Deload to start the block: half the sets, about 90% of your last weights, RPE 6 or less. Next week picks up from your pre-deload weights."],
+  };
+  const metrics: WeekMetrics = { plannedSessions: 0, completedSessions: 0, setsWithTarget: 0, setsHitTarget: 0, rpeGap: null, mainLifts: [] };
+  return saveWeekPlan(db, { enrolmentId, recommendation: { planWeek: week, reviewWeek: week - 1, decision, metrics, checkIn: null }, accepted: true, date });
+}

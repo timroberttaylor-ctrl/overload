@@ -10,6 +10,7 @@ import { addDays, isoDate } from '@/core/dates';
 import { displayToKg, formatWeight } from '@/core/units';
 import { getDb } from '@/db/client';
 import { latestBodyweight, logBodyweight } from '@/db/repositories/body';
+import { blockSummary, lastCompletedBlock } from '@/db/repositories/block';
 import { getActiveEnrolment, programDayPlan } from '@/db/repositories/enrolments';
 import { listHealthDays } from '@/db/repositories/health';
 import { reviewState } from '@/db/repositories/planner';
@@ -50,12 +51,16 @@ export default function TrainScreen() {
       review: reviewState(db, enrolment),
       health: listHealthDays(db, addDays(today, -30), today),
       weight: latestBodyweight(db),
+      finished: enrolment ? undefined : (() => {
+        const done = lastCompletedBlock(db);
+        return done ? blockSummary(db, done.id) : undefined;
+      })(),
     };
   });
   const [weightText, setWeightText] = useState('');
 
   if (!data) return null;
-  const { settings, enrolment, template, plan, week, dayLog, inProgress, weight, health, review } = data;
+  const { settings, enrolment, template, plan, week, dayLog, inProgress, weight, health, review, finished } = data;
   const unit = settings.units;
   const fail = (title: string, e: unknown) => Alert.alert(title, e instanceof Error ? e.message : String(e));
 
@@ -319,6 +324,18 @@ export default function TrainScreen() {
             )}
           </Card>
         </>
+      ) : finished ? (
+        <Card raised style={{ padding: 20, borderColor: t.accent, borderWidth: 1 }} onPress={() => router.push({ pathname: '/program/complete', params: { id: finished.enrolment.id } })}>
+          <Icon name="trophy" size={28} color={t.accent} />
+          <Eyebrow color={t.accent}>Program complete</Eyebrow>
+          <Display>{finished.template.name}</Display>
+          <Body muted>
+            {finished.sessionsDone} workouts
+            {finished.lifts[0] ? ` · ${finished.lifts[0].name} ${finished.lifts[0].changePct >= 0 ? '+' : ''}${Math.round(finished.lifts[0].changePct)}%` : ''}
+            {finished.recordLifts ? ` · PRs on ${finished.recordLifts} lift${finished.recordLifts === 1 ? '' : 's'}` : ''}
+          </Body>
+          <Button title="See results and what's next" icon="arrow-forward" onPress={() => router.push({ pathname: '/program/complete', params: { id: finished.enrolment.id } })} />
+        </Card>
       ) : (
         <Card raised style={{ padding: 20 }}>
           <Icon name="layers" size={28} color={t.accent} />

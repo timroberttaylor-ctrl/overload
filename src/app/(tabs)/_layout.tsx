@@ -1,9 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Redirect } from 'expo-router';
 import { Tabs } from 'expo-router/js-tabs';
-import type { ComponentProps } from 'react';
+import { useState, type ComponentProps } from 'react';
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { getDb } from '@/db/client';
+import { needsOnboarding } from '@/db/repositories/onboarding';
 import { useTheme } from '@/hooks/use-theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -19,6 +22,15 @@ export default function TabLayout() {
   const t = useTheme();
   // Respect the iPhone home indicator (and Android gesture bar) instead of a fixed height.
   const bottom = useSafeAreaInsets().bottom;
+  // Brand-new users get first-run setup; checked once when the tabs mount.
+  const [onboard] = useState(() => {
+    try {
+      return needsOnboarding(getDb());
+    } catch {
+      return false;
+    }
+  });
+  if (onboard) return <Redirect href="/welcome" />;
   return (
     <Tabs
       screenOptions={({ route }) => ({

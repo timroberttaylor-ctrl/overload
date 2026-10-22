@@ -67,7 +67,7 @@ describe('backfilling a past workout', () => {
 describe('settings', () => {
   it('no longer carries readiness-only settings', async () => {
     const { db } = await createTestDb();
-    expect(Object.keys(getSettings(db)).sort()).toEqual(['appearance', 'autoAdvanceAfterLog', 'autoAdvanceAfterRest', 'plateIncrementKg', 'restCountdownSound', 'units']);
+    expect(Object.keys(getSettings(db)).sort()).toEqual(['appearance', 'autoAdvanceAfterLog', 'autoAdvanceAfterRest', 'onboarded', 'plateIncrementKg', 'restCountdownSound', 'units']);
   });
 });
 

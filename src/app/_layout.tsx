@@ -57,6 +57,8 @@ export default function RootLayout() {
           <Stack.Screen name="session/[id]" options={{ title: 'Workout' }} />
           <Stack.Screen name="session/summary" options={{ title: '', headerBackVisible: false, gestureEnabled: false }} />
           <Stack.Screen name="week-review" options={{ title: 'Week review' }} />
+          <Stack.Screen name="program/complete" options={{ title: '' }} />
+          <Stack.Screen name="welcome" options={{ headerShown: false, gestureEnabled: false }} />
         </Stack>
       ) : null}
       <KeyboardDoneBar />

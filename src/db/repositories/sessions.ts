@@ -522,7 +522,7 @@ export function sessionCounts(detail: SessionDetail) {
   return { planned: working.length, done: done.length };
 }
 
-function datedSets(db: DB, exerciseId: string, filter: { onlySession?: string; excludeSession?: string; before?: number }): DatedSet[] {
+export function datedSets(db: DB, exerciseId: string, filter: { onlySession?: string; excludeSession?: string; before?: number }): DatedSet[] {
   const conds = [eq(setLogs.exerciseId, exerciseId), eq(setLogs.completed, true), isNull(setLogs.deletedAt), ne(setLogs.setType, 'warmup'), isNull(sessions.deletedAt)];
   if (filter.onlySession) conds.push(eq(setLogs.sessionId, filter.onlySession));
   else conds.push(inArray(sessions.status, [...DONE_STATUSES]));

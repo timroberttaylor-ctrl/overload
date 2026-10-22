@@ -13,6 +13,8 @@ export type AppSettings = {
   autoAdvanceAfterLog: boolean;
   autoAdvanceAfterRest: boolean;
   restCountdownSound: boolean;
+  /** First-run setup finished or skipped */
+  onboarded: boolean;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -22,6 +24,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   autoAdvanceAfterLog: true,
   autoAdvanceAfterRest: true,
   restCountdownSound: true,
+  onboarded: false,
 };
 
 const KEYS = Object.keys(DEFAULT_SETTINGS) as (keyof AppSettings)[];
@@ -34,6 +37,7 @@ const VALID: { [K in keyof AppSettings]: (v: unknown) => v is AppSettings[K] } =
   autoAdvanceAfterLog: (v): v is boolean => typeof v === 'boolean',
   autoAdvanceAfterRest: (v): v is boolean => typeof v === 'boolean',
   restCountdownSound: (v): v is boolean => typeof v === 'boolean',
+  onboarded: (v): v is boolean => typeof v === 'boolean',
 };
 
 /**
