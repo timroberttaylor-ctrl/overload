@@ -83,6 +83,34 @@
     "experiments": {
       "typedRoutes": false,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "build": {
+          "experimental": {
+            "ios": {
+              "appExtensions": [
+                {
+                  "targetName": "ExpoWidgetsTarget",
+                  "bundleIdentifier": "au.com.timtaylor.ovrld.ExpoWidgetsTarget",
+                  "entitlements": {
+                    "com.apple.security.application-groups": [
+                      "group.au.com.timtaylor.ovrld"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "projectId": "4cb0d7c4-2677-4b81-a7bd-478709f1e428"
+      }
+    },
+    "owner": "drtima"
   }
 }
