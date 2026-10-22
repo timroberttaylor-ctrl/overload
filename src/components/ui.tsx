@@ -1,0 +1,273 @@
+import { Ionicons } from '@expo/vector-icons';
+import type { ComponentProps, ReactNode } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View, type TextInputProps, type TextStyle, type ViewStyle } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
+
+export type IconName = ComponentProps<typeof Ionicons>['name'];
+
+export function Icon({ name, size = 20, color }: { name: IconName; size?: number; color?: string }) {
+  const t = useTheme();
+  return <Ionicons name={name} size={size} color={color ?? t.text} />;
+}
+
+export function Screen({ children, scroll = true, edges = ['top'], padded = true }: { children: ReactNode; scroll?: boolean; edges?: ('top' | 'bottom')[]; padded?: boolean }) {
+  const t = useTheme();
+  const style = [padded ? styles.content : styles.contentFlush];
+  const body = scroll ? (
+    <ScrollView contentContainerStyle={style} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      {children}
+    </ScrollView>
+  ) : (
+    <View style={[style, { flex: 1 }]}>{children}</View>
+  );
+  return (
+    <SafeAreaView edges={edges} style={{ flex: 1, backgroundColor: t.background }}>
+      {body}
+    </SafeAreaView>
+  );
+}
+
+/** Small uppercase label above a title, e.g. "WEEK 2 · DAY 9". */
+export function Eyebrow({ children, color, style }: { children: ReactNode; color?: string; style?: TextStyle }) {
+  const t = useTheme();
+  return <Text style={[styles.eyebrow, { color: color ?? t.textSecondary }, style]}>{children}</Text>;
+}
+
+export function Display({ children, style }: { children: ReactNode; style?: TextStyle }) {
+  const t = useTheme();
+  return <Text style={[styles.display, { color: t.text }, style]}>{children}</Text>;
+}
+
+export function H1({ children, style }: { children: ReactNode; style?: TextStyle }) {
+  const t = useTheme();
+  return <Text style={[styles.h1, { color: t.text }, style]}>{children}</Text>;
+}
+
+export function H2({ children, style }: { children: ReactNode; style?: TextStyle }) {
+  const t = useTheme();
+  return <Text style={[styles.h2, { color: t.text }, style]}>{children}</Text>;
+}
+
+export function Body({ children, muted, style }: { children: ReactNode; muted?: boolean; style?: TextStyle }) {
+  const t = useTheme();
+  return <Text style={[styles.body, { color: muted ? t.textSecondary : t.text }, style]}>{children}</Text>;
+}
+
+export function Small({ children, muted = true, style }: { children: ReactNode; muted?: boolean; style?: TextStyle }) {
+  const t = useTheme();
+  return <Text style={[styles.small, { color: muted ? t.textSecondary : t.text }, style]}>{children}</Text>;
+}
+
+export function Card({ children, onPress, style, raised }: { children: ReactNode; onPress?: () => void; style?: ViewStyle; raised?: boolean }) {
+  const t = useTheme();
+  const base = [styles.card, { backgroundColor: raised ? t.surfaceRaised : t.backgroundElement, borderColor: t.border }, style];
+  if (!onPress) return <View style={base}>{children}</View>;
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [base, pressed && { opacity: 0.75 }]} accessibilityRole="button">
+      {children}
+    </Pressable>
+  );
+}
+
+/** Tappable list row with an optional leading icon and trailing chevron. */
+export function ListRow({ title, subtitle, icon, onPress, right }: { title: string; subtitle?: string; icon?: IconName; onPress?: () => void; right?: ReactNode }) {
+  const t = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      style={({ pressed }) => [styles.listRow, { borderColor: t.border, opacity: pressed ? 0.7 : 1 }]}
+    >
+      {icon ? (
+        <View style={[styles.listIcon, { backgroundColor: t.backgroundSelected }]}>
+          <Icon name={icon} size={18} color={t.accent} />
+        </View>
+      ) : null}
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={[styles.body, { color: t.text, fontWeight: '600' }]} numberOfLines={1}>
+          {title}
+        </Text>
+        {subtitle ? <Small>{subtitle}</Small> : null}
+      </View>
+      {right ?? (onPress ? <Icon name="chevron-forward" size={18} color={t.textSecondary} /> : null)}
+    </Pressable>
+  );
+}
+
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+
+export function Button({
+  title,
+  onPress,
+  variant = 'primary',
+  disabled,
+  icon,
+  compact,
+  style,
+}: {
+  title: string;
+  onPress: () => void;
+  variant?: ButtonVariant;
+  disabled?: boolean;
+  icon?: IconName;
+  compact?: boolean;
+  style?: ViewStyle;
+}) {
+  const t = useTheme();
+  const bg = variant === 'primary' ? t.accent : variant === 'danger' ? t.danger : variant === 'secondary' ? t.backgroundSelected : 'transparent';
+  const fg = variant === 'primary' ? t.accentText : variant === 'danger' ? '#fff' : variant === 'ghost' ? t.accent : t.text;
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      style={({ pressed }) => [
+        styles.button,
+        compact && styles.buttonCompact,
+        { backgroundColor: bg, opacity: disabled ? 0.35 : pressed ? 0.8 : 1 },
+        variant === 'ghost' && { borderWidth: 1, borderColor: t.border },
+        style,
+      ]}
+    >
+      {icon ? <Icon name={icon} size={compact ? 16 : 18} color={fg} /> : null}
+      <Text style={[styles.buttonText, compact && { fontSize: 14 }, { color: fg }]}>{title}</Text>
+    </Pressable>
+  );
+}
+
+export function Pill({ label, active, onPress, icon }: { label: string; active?: boolean; onPress?: () => void; icon?: IconName }) {
+  const t = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityState={{ selected: !!active }}
+      style={[styles.pill, { backgroundColor: active ? t.accent : t.backgroundSelected }]}
+    >
+      {icon ? <Icon name={icon} size={13} color={active ? t.accentText : t.textSecondary} /> : null}
+      <Text style={[styles.pillText, { color: active ? t.accentText : t.text }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+/** Small outlined tag, e.g. muscle groups or a level. */
+export function Tag({ label, tone = 'neutral' }: { label: string; tone?: 'neutral' | 'accent' | 'warning' }) {
+  const t = useTheme();
+  const color = tone === 'accent' ? t.accent : tone === 'warning' ? t.warning : t.textSecondary;
+  return (
+    <View style={[styles.tag, { borderColor: color + '66', backgroundColor: tone === 'neutral' ? 'transparent' : color + '1A' }]}>
+      <Text style={[styles.tagText, { color }]}>{label}</Text>
+    </View>
+  );
+}
+
+export function Field(props: TextInputProps) {
+  const t = useTheme();
+  return <TextInput placeholderTextColor={t.textSecondary} {...props} style={[styles.field, { color: t.text, borderColor: t.border, backgroundColor: t.backgroundElement }, props.style]} />;
+}
+
+export function Row({ children, gap = Spacing.two, style }: { children: ReactNode; gap?: number; style?: ViewStyle }) {
+  return <View style={[{ flexDirection: 'row', alignItems: 'center', gap, flexWrap: 'wrap' }, style]}>{children}</View>;
+}
+
+/** Big number with a caption, used in stat strips. */
+export function Stat({ value, label, align = 'center' }: { value: string; label: string; align?: 'center' | 'left' }) {
+  const t = useTheme();
+  return (
+    <View style={{ flex: 1, alignItems: align === 'center' ? 'center' : 'flex-start', gap: 2 }}>
+      <Text style={[styles.statValue, { color: t.text }]}>{value}</Text>
+      <Text style={[styles.statLabel, { color: t.textSecondary }]}>{label}</Text>
+    </View>
+  );
+}
+
+export function StatStrip({ children }: { children: ReactNode }) {
+  const t = useTheme();
+  return <View style={[styles.statStrip, { borderColor: t.border }]}>{children}</View>;
+}
+
+export function Divider() {
+  const t = useTheme();
+  return <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: t.border }} />;
+}
+
+export function ProgressBar({ value, color }: { value: number; color?: string }) {
+  const t = useTheme();
+  return (
+    <View style={[styles.track, { backgroundColor: t.backgroundSelected }]}>
+      <View style={[styles.fill, { width: `${Math.max(0, Math.min(1, value)) * 100}%`, backgroundColor: color ?? t.accent }]} />
+    </View>
+  );
+}
+
+export function SectionHeader({ title, action }: { title: string; action?: { label: string; onPress: () => void } }) {
+  const t = useTheme();
+  return (
+    <Row style={{ justifyContent: 'space-between', marginTop: Spacing.two }}>
+      <H2>{title}</H2>
+      {action ? (
+        <Pressable onPress={action.onPress} accessibilityRole="button" hitSlop={8}>
+          <Text style={{ color: t.accent, fontWeight: '700', fontSize: 14 }}>{action.label}</Text>
+        </Pressable>
+      ) : null}
+    </Row>
+  );
+}
+
+export function Loading({ label }: { label?: string }) {
+  const t = useTheme();
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.two, backgroundColor: t.background }}>
+      <ActivityIndicator color={t.accent} />
+      {label ? <Small>{label}</Small> : null}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  content: { padding: Spacing.three, gap: Spacing.three, paddingBottom: Spacing.six + 24 },
+  contentFlush: { gap: Spacing.three, paddingBottom: Spacing.six + 24 },
+  eyebrow: { fontSize: 12, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase' },
+  display: { fontSize: 34, fontWeight: '900', lineHeight: 38, letterSpacing: -0.5 },
+  h1: { fontSize: 28, fontWeight: '800', lineHeight: 34, letterSpacing: -0.3 },
+  h2: { fontSize: 18, fontWeight: '800', lineHeight: 24 },
+  body: { fontSize: 15, lineHeight: 21 },
+  small: { fontSize: 13, lineHeight: 18 },
+  card: { borderRadius: Radius.lg, padding: Spacing.three, gap: Spacing.two, borderWidth: StyleSheet.hairlineWidth },
+  listRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth },
+  listIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  button: { borderRadius: Radius.md, paddingVertical: 14, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
+  buttonCompact: { paddingVertical: 9, paddingHorizontal: 14 },
+  buttonText: { fontSize: 16, fontWeight: '800' },
+  pill: { borderRadius: Radius.pill, paddingVertical: 7, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  pillText: { fontSize: 13, fontWeight: '700' },
+  tag: { borderRadius: Radius.pill, borderWidth: 1, paddingVertical: 3, paddingHorizontal: 9 },
+  tagText: { fontSize: 11, fontWeight: '700', textTransform: 'capitalize' },
+  field: { borderWidth: 1, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15 },
+  statValue: { fontSize: 22, fontWeight: '900', fontVariant: ['tabular-nums'] },
+  statLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase' },
+  statStrip: { flexDirection: 'row', borderTopWidth: StyleSheet.hairlineWidth, paddingTop: Spacing.three, marginTop: Spacing.one },
+  track: { height: 6, borderRadius: 3, overflow: 'hidden' },
+  fill: { height: 6, borderRadius: 3 },
+});
+
+/** On/off switch in the app's green instead of the platform default. */
+export function Toggle({ value, onValueChange, label }: { value: boolean; onValueChange: (v: boolean) => void; label?: string }) {
+  const t = useTheme();
+  return (
+    <Switch
+      value={value}
+      onValueChange={onValueChange}
+      accessibilityLabel={label}
+      trackColor={{ false: t.border, true: t.accent + '88' }}
+      thumbColor={value ? t.accent : t.textSecondary}
+      ios_backgroundColor={t.border}
+    />
+  );
+}

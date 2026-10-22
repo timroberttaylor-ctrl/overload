@@ -1,0 +1,133 @@
+import Constants from 'expo-constants';
+import { useState } from 'react';
+import { Alert, View } from 'react-native';
+
+import { RecoveryDataCard } from '@/components/recovery-data-card';
+import { Body, Button, Card, Eyebrow, H1, H2, Pill, Row, Screen, Small, Toggle } from '@/components/ui';
+import { useTheme } from '@/hooks/use-theme';
+import { useAppearance } from '@/state/appearance';
+import { pickBackup, restoreBackup, shareBackup, shareCsv } from '@/data/share';
+import { getDb } from '@/db/client';
+import { MEDIA_CREDIT } from '@/db/seed/exercise-media';
+import { getSettings, updateSettings, type AppSettings } from '@/db/repositories/settings';
+import { useDbQuery } from '@/hooks/use-db-query';
+
+const PLATE_STEPS = [1, 1.25, 2.5, 5];
+
+export default function SettingsScreen() {
+  const t = useTheme();
+  const setAppearance = useAppearance((a) => a.setAppearance);
+  const [s, refresh] = useDbQuery((db) => getSettings(db));
+  const [busy, setBusy] = useState(false);
+  if (!s) return null;
+
+  const set = (patch: Partial<AppSettings>) => {
+    updateSettings(getDb(), patch);
+    refresh();
+  };
+
+  const run = async (label: string, fn: () => Promise<unknown>) => {
+    setBusy(true);
+    try {
+      await fn();
+    } catch (e) {
+      Alert.alert(label, e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const restore = () =>
+    run('Restore', async () => {
+      const backup = await pickBackup();
+      if (!backup) return;
+      const sessions = backup.tables.sessions.length;
+      Alert.alert('Replace all data?', `This backup is from ${backup.exportedAt.slice(0, 10)} and contains ${sessions} sessions. Everything currently in the app will be replaced.`, [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Replace',
+          style: 'destructive',
+          onPress: () => {
+            try {
+              const { rows } = restoreBackup(getDb(), backup);
+              refresh();
+              Alert.alert('Restored', `${rows} records restored.`);
+            } catch (e) {
+              Alert.alert('Restore failed, nothing was changed', e instanceof Error ? e.message : String(e));
+            }
+          },
+        },
+      ]);
+    });
+
+  return (
+    <Screen>
+      <View>
+        <Eyebrow color={t.accent}>Settings</Eyebrow>
+        <H1>Preferences</H1>
+      </View>
+
+      <RecoveryDataCard />
+
+      <Card>
+        <H2>Appearance</H2>
+        <Row>
+          {(['dark', 'light', 'system'] as const).map((a) => (
+            <Pill
+              key={a}
+              label={a === 'system' ? 'Match phone' : a[0].toUpperCase() + a.slice(1)}
+              active={s.appearance === a}
+              onPress={() => {
+                set({ appearance: a });
+                setAppearance(a);
+              }}
+            />
+          ))}
+        </Row>
+      </Card>
+
+      <Card>
+        <H2>Units</H2>
+        <Row>
+          <Pill label="Kilograms" active={s.units === 'kg'} onPress={() => set({ units: 'kg' })} />
+          <Pill label="Pounds" active={s.units === 'lb'} onPress={() => set({ units: 'lb' })} />
+        </Row>
+        <Small>Everything is stored in kg and converted for display, so switching is safe.</Small>
+        <Body>Smallest load jump</Body>
+        <Row>
+          {PLATE_STEPS.map((p) => (
+            <Pill key={p} label={`${p} kg`} active={s.plateIncrementKg === p} onPress={() => set({ plateIncrementKg: p })} />
+          ))}
+        </Row>
+      </Card>
+
+      <Card>
+        <H2>Workout player</H2>
+        <Row style={{ justifyContent: 'space-between' }}>
+          <Body style={{ flex: 1 }}>Jump to the next exercise as soon as one is finished</Body>
+          <Toggle value={s.autoAdvanceAfterLog} onValueChange={(v) => set({ autoAdvanceAfterLog: v })} />
+        </Row>
+        <Row style={{ justifyContent: 'space-between' }}>
+          <Body style={{ flex: 1 }}>Otherwise jump when the rest timer ends</Body>
+          <Toggle value={s.autoAdvanceAfterRest} onValueChange={(v) => set({ autoAdvanceAfterRest: v })} />
+        </Row>
+        <Row style={{ justifyContent: 'space-between' }}>
+          <Body style={{ flex: 1 }}>Beep for the last 3 seconds of rest</Body>
+          <Toggle value={s.restCountdownSound} onValueChange={(v) => set({ restCountdownSound: v })} />
+        </Row>
+      </Card>
+
+      <Card>
+        <H2>Your data</H2>
+        <Small>Everything lives on this phone. Back up regularly; a backup restores everything.</Small>
+        <Button title="Export backup (JSON)" icon="cloud-download-outline" onPress={() => run('Export', () => shareBackup(getDb()))} disabled={busy} />
+        <Button title="Export workout log (CSV)" variant="secondary" onPress={() => run('Export', () => shareCsv(getDb()))} disabled={busy} />
+        <Button title="Export body weight (CSV)" variant="secondary" onPress={() => run('Export', () => shareCsv(getDb(), 'bodyweights.csv'))} disabled={busy} />
+        <Button title="Restore from backup…" variant="ghost" icon="refresh" onPress={restore} disabled={busy} />
+      </Card>
+
+      <Small>Overload {Constants.expoConfig?.version ?? ''} · your data stays on this phone</Small>
+      <Small>{MEDIA_CREDIT}</Small>
+    </Screen>
+  );
+}
