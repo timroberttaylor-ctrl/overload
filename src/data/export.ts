@@ -5,6 +5,7 @@ import type { DB } from '@/db/types';
 
 import { MAX_BACKUP_BYTES, validateBackupTables } from './validate';
 
+// Kept from the working name so backups made before the OVRLD rename still restore.
 export const BACKUP_FORMAT = 'overload-backup';
 export const BACKUP_VERSION = 1;
 
@@ -42,12 +43,12 @@ export function parseBackup(json: string): Backup {
   } catch {
     throw new Error('That file is not valid JSON');
   }
-  if (typeof data !== 'object' || data === null || Array.isArray(data)) throw new Error('That file is not an Overload backup');
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) throw new Error('That file is not an OVRLD backup');
   const b = data as Partial<Backup>;
-  if (b.format !== BACKUP_FORMAT || typeof b.version !== 'number' || !Number.isInteger(b.version) || b.version < 1) throw new Error('That file is not an Overload backup');
+  if (b.format !== BACKUP_FORMAT || typeof b.version !== 'number' || !Number.isInteger(b.version) || b.version < 1) throw new Error('That file is not an OVRLD backup');
   if (b.version > BACKUP_VERSION) throw new Error('This backup was made by a newer version of the app');
-  if (typeof b.exportedAt !== 'string' || Number.isNaN(Date.parse(b.exportedAt))) throw new Error('That file is not an Overload backup');
-  if (typeof b.tables !== 'object' || b.tables === null || Array.isArray(b.tables)) throw new Error('That file is not an Overload backup');
+  if (typeof b.exportedAt !== 'string' || Number.isNaN(Date.parse(b.exportedAt))) throw new Error('That file is not an OVRLD backup');
+  if (typeof b.tables !== 'object' || b.tables === null || Array.isArray(b.tables)) throw new Error('That file is not an OVRLD backup');
   validateBackupTables(b.tables as Record<string, unknown>);
   return { format: BACKUP_FORMAT, version: b.version, exportedAt: b.exportedAt, tables: b.tables as Backup['tables'] };
 }

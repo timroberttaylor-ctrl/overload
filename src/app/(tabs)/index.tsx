@@ -154,7 +154,7 @@ export default function TrainScreen() {
         </Pressable>
       ) : (
         <View>
-          <Eyebrow color={t.accent}>Overload</Eyebrow>
+          <Eyebrow color={t.accent}>OVRLD</Eyebrow>
           <H1>Train</H1>
         </View>
       )}

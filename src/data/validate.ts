@@ -118,7 +118,7 @@ function checkType(columnType: string, v: unknown): boolean {
 }
 
 function fail(table: string, index: number, msg: string): never {
-  throw new Error(`Backup is damaged or not from Overload (${table} row ${index + 1}: ${msg})`);
+  throw new Error(`Backup is damaged or not from OVRLD (${table} row ${index + 1}: ${msg})`);
 }
 
 /**

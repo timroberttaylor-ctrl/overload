@@ -27,7 +27,7 @@ describe('backup and restore', () => {
   it('rejects files that are not backups and leaves data untouched on failure', async () => {
     const { db } = await createTestDb();
     expect(() => parseBackup('not json')).toThrow(/valid JSON/);
-    expect(() => parseBackup('{"format":"x"}')).toThrow(/not an Overload backup/);
+    expect(() => parseBackup('{"format":"x"}')).toThrow(/not an OVRLD backup/);
     const b = buildBackup(db);
     logBodyweight(db, '2026-10-20', 95);
     // Corrupt one row so the insert fails mid-restore

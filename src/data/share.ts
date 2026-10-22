@@ -62,7 +62,7 @@ async function shareText(fileName: string, contents: string, mimeType: string) {
 }
 
 export async function shareBackup(db: DB) {
-  await shareText(`overload-backup-${isoDate()}.json`, backupToJson(buildBackup(db)), 'application/json');
+  await shareText(`ovrld-backup-${isoDate()}.json`, backupToJson(buildBackup(db)), 'application/json');
 }
 
 const CSV_EXPORTS = new Set(['workout_log.csv', 'bodyweights.csv']);
@@ -82,7 +82,7 @@ export async function pickBackup() {
   const file = new File(asset.uri);
   try {
     const size = asset.size ?? file.size ?? 0;
-    if (size > MAX_BACKUP_BYTES) throw new Error('This file is too large to be an Overload backup');
+    if (size > MAX_BACKUP_BYTES) throw new Error('This file is too large to be an OVRLD backup');
     const text = await file.text();
     return parseBackup(text);
   } finally {

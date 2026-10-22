@@ -1,8 +1,10 @@
-# Overload
+# OVRLD
 
-A local-first strength training app: structured programs, fast offline logging, a progressive-overload engine and (from step 4) readiness-driven weekly planning from Oura / Health Connect data.
+A local-first strength training app for iPhone and Android: structured programs, fast offline logging, a progressive-overload engine and an adaptive weekly planner. Wearable sync (Oura, Apple Health) is planned after launch.
 
-Built with Expo SDK 58 (React Native, TypeScript), expo-sqlite + Drizzle ORM. See `docs/architecture.md` in the FITNESS APP project for the design.
+Public pages (privacy policy, support) live in `docs/` and are served by GitHub Pages.
+
+Built with Expo SDK 58 (React Native, TypeScript), expo-sqlite + Drizzle ORM. See `phase2/architecture.md` in the FITNESS APP project for the design.
 
 ## Run it on the Android emulator (Windows)
 
