@@ -5,7 +5,7 @@ import { nextTarget } from '@/core/overload';
 import { changeSummary, decideWeek, regionAffects, setsUnderPlan, type CheckIn, type PlanInput, type WeekMetrics } from '@/core/planner';
 import { programDayPlan, startProgram, type Enrolment } from '@/db/repositories/enrolments';
 import { clearWeekPlan, getWeekPlan, recommendWeek, reviewState, saveCheckIn, saveWeekPlan, weekMetrics, weekVolume, weeksSinceDeload } from '@/db/repositories/planner';
-import { completeRestDay, finishSession, getSessionDetail, logSet, startProgramSession } from '@/db/repositories/sessions';
+import { completeRestDay, finishSession, getSessionDetail, getSessionSummary, logSet, sessionForProgramDay, startProgramSession } from '@/db/repositories/sessions';
 import { enrolments } from '@/db/schema';
 import type { DB } from '@/db/types';
 import { eq } from 'drizzle-orm';
@@ -233,6 +233,23 @@ describe('weekly planner on real logs', () => {
     const bench3 = getSessionDetail(db, s3.id)!.groups.find((g) => g.exercise.id === 'bench_press')!;
     expect(bench3.sets.filter((x) => x.setType === 'working').map((x) => x.targetWeightKg)).toEqual([82.5, 82.5, 82.5]);
     expect(bench3.lastTime?.sets[0].weightKg).toBe(70); // "last time" still shows what you really did
+  });
+
+  it('the summary\'s "Next time" matches what the next session will really prescribe', async () => {
+    const { db } = await createTestDb();
+    const e = startProgram(db, 'tpl_upper_lower_4', START);
+    runWeek(db, e, 1);
+    const day0 = sessionForProgramDay(db, e.id, 0)!;
+    const benchNext = () => getSessionSummary(db, day0.id)!.next.find((n) => n.exerciseName === 'Barbell Bench Press')!.target;
+    expect(benchNext().weightKg).toBe(82.5); // normal progression from 80
+
+    saveCheckIn(db, { enrolmentId: e.id, week: 1, checkIn: { fatigue: 4, soreness: 4, motivation: 2, jointPain: 1, jointPainRegion: null }, date: '2026-10-26' });
+    saveWeekPlan(db, { enrolmentId: e.id, recommendation: recommendWeek(db, e.id, 2), accepted: true, date: '2026-10-26' });
+    expect(benchNext().weightKg).toBe(70); // deload week applied, as the session below
+
+    const s = startProgramSession(db, { enrolmentId: e.id, programDay: 7, date: addDays(START, 7), now: START_TIME + 7 * 86_400_000 });
+    const bench = getSessionDetail(db, s.id)!.groups.find((g) => g.exercise.id === 'bench_press')!;
+    expect(bench.sets.find((x) => x.setType === 'working')!.targetWeightKg).toBe(benchNext().weightKg);
   });
 
   it('knee pain lightens knee-dominant exercises only', async () => {

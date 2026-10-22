@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router/js-tabs';
 import type { ComponentProps } from 'react';
 import { StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/hooks/use-theme';
 
@@ -16,6 +17,8 @@ const ICONS: Record<string, [IconName, IconName]> = {
 
 export default function TabLayout() {
   const t = useTheme();
+  // Respect the iPhone home indicator (and Android gesture bar) instead of a fixed height.
+  const bottom = useSafeAreaInsets().bottom;
   return (
     <Tabs
       screenOptions={({ route }) => ({
@@ -23,7 +26,7 @@ export default function TabLayout() {
         tabBarActiveTintColor: t.accent,
         tabBarInactiveTintColor: t.textSecondary,
         tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
-        tabBarStyle: { backgroundColor: t.background, borderTopColor: t.border, borderTopWidth: StyleSheet.hairlineWidth, height: 64, paddingTop: 6, paddingBottom: 8 },
+        tabBarStyle: { backgroundColor: t.background, borderTopColor: t.border, borderTopWidth: StyleSheet.hairlineWidth, height: 56 + Math.max(bottom, 8), paddingTop: 6, paddingBottom: Math.max(bottom, 8) },
         tabBarIcon: ({ color, focused }) => <Ionicons name={(ICONS[route.name] ?? ['ellipse', 'ellipse-outline'])[focused ? 0 : 1]} size={22} color={color as string} />,
       })}>
       <Tabs.Screen name="index" options={{ title: 'Train' }} />

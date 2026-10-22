@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps, ReactNode } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View, type TextInputProps, type TextStyle, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View, type TextInputProps, type TextStyle, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { KEYBOARD_DONE_ID } from '@/components/keyboard-done';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -17,7 +18,7 @@ export function Screen({ children, scroll = true, edges = ['top'], padded = true
   const t = useTheme();
   const style = [padded ? styles.content : styles.contentFlush];
   const body = scroll ? (
-    <ScrollView contentContainerStyle={style} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+    <ScrollView contentContainerStyle={style} keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'} automaticallyAdjustKeyboardInsets showsVerticalScrollIndicator={false}>
       {children}
     </ScrollView>
   ) : (
@@ -167,9 +168,13 @@ export function Tag({ label, tone = 'neutral' }: { label: string; tone?: 'neutra
   );
 }
 
+const NUMERIC_KEYBOARDS = new Set(['number-pad', 'decimal-pad', 'numeric', 'phone-pad']);
+
 export function Field(props: TextInputProps) {
   const t = useTheme();
-  return <TextInput placeholderTextColor={t.textSecondary} {...props} style={[styles.field, { color: t.text, borderColor: t.border, backgroundColor: t.backgroundElement }, props.style]} />;
+  // iOS number pads have no Return key: attach the shared "Done" bar so the keyboard can be closed.
+  const accessory = props.keyboardType && NUMERIC_KEYBOARDS.has(props.keyboardType) ? KEYBOARD_DONE_ID : undefined;
+  return <TextInput placeholderTextColor={t.textSecondary} inputAccessoryViewID={accessory} {...props} style={[styles.field, { color: t.text, borderColor: t.border, backgroundColor: t.backgroundElement }, props.style]} />;
 }
 
 export function Row({ children, gap = Spacing.two, style }: { children: ReactNode; gap?: number; style?: ViewStyle }) {

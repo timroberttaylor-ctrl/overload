@@ -27,6 +27,10 @@ export function RecoveryDataCard() {
     load();
   };
 
+  // Store builds don't offer made-up data (App Review treats it as placeholder content).
+  // The card still appears there if sample rows arrived in a restored backup, so they can be removed.
+  if (!__DEV__ && !sample) return null;
+
   return (
     <Card>
       <Row style={{ justifyContent: 'space-between' }}>
@@ -39,13 +43,15 @@ export function RecoveryDataCard() {
       <Body muted>Syncing readiness, sleep and HRV from a wearable such as Oura is planned for after launch.</Body>
       <Small>To try the Recovery card now, load 60 days of made-up data. It is labelled as sample data and can be removed at any time.</Small>
       <Row>
-        <Button
-          compact
-          variant="secondary"
-          icon="flask-outline"
-          title={sample ? 'Reload sample data' : 'Load sample data'}
-          onPress={() => run('Sample data', () => upsertHealthDays(getDb(), 'sample', generateSampleRecovery(isoDate(), 60)), 'Loaded 60 days of sample recovery data.')}
-        />
+        {__DEV__ ? (
+          <Button
+            compact
+            variant="secondary"
+            icon="flask-outline"
+            title={sample ? 'Reload sample data' : 'Load sample data'}
+            onPress={() => run('Sample data', () => upsertHealthDays(getDb(), 'sample', generateSampleRecovery(isoDate(), 60)), 'Loaded 60 days of sample recovery data.')}
+          />
+        ) : null}
         {sample ? <Button compact variant="ghost" title="Remove sample data" onPress={() => run('Sample data', () => removeHealthSource(getDb(), 'sample'))} /> : null}
       </Row>
     </Card>

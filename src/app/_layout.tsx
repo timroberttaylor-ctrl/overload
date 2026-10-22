@@ -4,6 +4,7 @@ import { Stack } from 'expo-router/stack';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 
+import { KeyboardDoneBar } from '@/components/keyboard-done';
 import { Body, H1, Screen } from '@/components/ui';
 import { purgeExportCache } from '@/data/share';
 import { getDb } from '@/db/client';
@@ -58,6 +59,7 @@ export default function RootLayout() {
           <Stack.Screen name="week-review" options={{ title: 'Week review' }} />
         </Stack>
       ) : null}
+      <KeyboardDoneBar />
     </ThemeProvider>
   );
 }

@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { KEYBOARD_DONE_ID } from '@/components/keyboard-done';
 import { parseWeightInput, weightInputValue, type WeightUnit } from '@/core/units';
 import type { SetLog } from '@/db/repositories/sessions';
 import { useTheme } from '@/hooks/use-theme';
@@ -46,13 +47,13 @@ export function SetRow({ set, label, unit, mode, highlighted, onSaveDraft, onTog
         <Text style={[styles.label, { color: set.setType === 'warmup' ? t.textSecondary : done ? t.accentText : t.accent }]}>{label}</Text>
       </View>
       <View style={styles.cell}>
-        <TextInput value={w} onChangeText={setW} onEndEditing={save} keyboardType="decimal-pad" placeholder={unit} placeholderTextColor={t.textSecondary} style={input} selectTextOnFocus accessibilityLabel={`${label} weight`} />
+        <TextInput value={w} onChangeText={setW} onEndEditing={save} keyboardType="decimal-pad" placeholder={unit} placeholderTextColor={t.textSecondary} style={input} selectTextOnFocus inputAccessoryViewID={KEYBOARD_DONE_ID} accessibilityLabel={`${label} weight`} />
       </View>
       <View style={styles.cellSmall}>
-        <TextInput value={r} onChangeText={setR} onEndEditing={save} keyboardType="number-pad" placeholder="reps" placeholderTextColor={t.textSecondary} style={input} selectTextOnFocus accessibilityLabel={`${label} reps`} />
+        <TextInput value={r} onChangeText={setR} onEndEditing={save} keyboardType="number-pad" placeholder="reps" placeholderTextColor={t.textSecondary} style={input} selectTextOnFocus inputAccessoryViewID={KEYBOARD_DONE_ID} accessibilityLabel={`${label} reps`} />
       </View>
       <View style={styles.cellSmall}>
-        <TextInput value={rpe} onChangeText={setRpe} onEndEditing={save} keyboardType="decimal-pad" placeholder={set.targetRpe != null ? `@${set.targetRpe}` : 'RPE'} placeholderTextColor={t.textSecondary} style={input} selectTextOnFocus accessibilityLabel={`${label} RPE`} />
+        <TextInput value={rpe} onChangeText={setRpe} onEndEditing={save} keyboardType="decimal-pad" placeholder={set.targetRpe != null ? `@${set.targetRpe}` : 'RPE'} placeholderTextColor={t.textSecondary} style={input} selectTextOnFocus inputAccessoryViewID={KEYBOARD_DONE_ID} accessibilityLabel={`${label} RPE`} />
       </View>
       {mode === 'player' ? (
         <Pressable

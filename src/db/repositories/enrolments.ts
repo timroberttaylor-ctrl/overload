@@ -122,6 +122,8 @@ export type ProgramDayPlan = {
   programDay: number; // 0-based absolute day in the program
   week: number; // 1-based
   totalDays: number;
+  /** Days per cycle (one program week) */
+  cycleLength: number;
   day: DayDetail['day'];
   phase: ReturnType<typeof phaseForWeek>;
   /** Accepted adaptive plan for this week, if any */
@@ -169,7 +171,7 @@ export function programDayPlan(db: DB, enrolment: Enrolment, programDay: number)
     };
   });
 
-  return { programDay: clamped, week, totalDays, day: detail.day, phase, weekPlan, slots };
+  return { programDay: clamped, week, totalDays, cycleLength, day: detail.day, phase, weekPlan, slots };
 }
 
 export function swapExercise(

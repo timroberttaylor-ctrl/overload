@@ -1,6 +1,7 @@
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { Alert, Keyboard, Platform, Pressable, ScrollView, Text, View, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
 
 import { ExerciseDemo } from '@/components/exercise-demo';
 import { RestTimer } from '@/components/rest-timer';
@@ -95,6 +96,8 @@ export default function SessionScreen() {
   const counts = sessionCounts(detail);
   const allSets = groups.flatMap((g) => g.sets);
   const nextSetId = allSets.find((s) => !s.completed)?.id;
+  const nextGroup = groups.find((g) => g.sets.some((s) => s.id === nextSetId));
+  const nextLabel = nextGroup ? `${nextGroup.exercise.name} · set ${setLabels(nextGroup.sets)[nextGroup.sets.findIndex((s) => s.id === nextSetId)]}` : undefined;
 
   const guard = (label: string, fn: () => void) => {
     try {
@@ -107,6 +110,7 @@ export default function SessionScreen() {
 
   const toggle = (group: ExerciseGroup, set: SetLog, v: SetValues) =>
     guard('Log set', () => {
+      Keyboard.dismiss();
       if (set.completed) return unlogSet(getDb(), set.id);
       if (v.weightKg == null || v.reps == null) throw new Error('Enter a weight (0 for bodyweight) and reps first');
       logSet(getDb(), set.id, {
@@ -114,6 +118,7 @@ export default function SessionScreen() {
         reps: v.reps,
         rpe: v.rpe,
       });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
       // Rest only after the last exercise of a superset round
       const idx = groups.indexOf(group);
       const nextInSeries = groups.slice(idx + 1).find((g) => g.series && g.series === group.series && g.sets.some((s) => !s.completed));
@@ -181,14 +186,20 @@ export default function SessionScreen() {
     ]);
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: t.background }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <View style={{ flex: 1, backgroundColor: t.background }}>
       <Stack.Screen
         options={{
           title: session.name,
           headerRight: () => (live && !session.isBackfill ? <Elapsed since={session.startedAt} /> : null),
         }}
       />
-      <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 12, gap: 12, paddingBottom: 140 }} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={{ padding: 12, gap: 12, paddingBottom: 140 }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        automaticallyAdjustKeyboardInsets
+      >
         <View style={{ gap: 8 }}>
           <Row style={{ justifyContent: 'space-between' }}>
             <Eyebrow color={live ? t.accent : t.textSecondary}>
@@ -379,7 +390,9 @@ export default function SessionScreen() {
         {live ? <Small>Tip: long-press a set to add a note or remove it. Everything is saved on the phone as you go.</Small> : null}
       </ScrollView>
 
-      {live && restEndsAt ? <RestTimer endsAt={restEndsAt} sound={settings.restCountdownSound} onChange={(v) => (v == null ? endRest() : setRestEndsAt(v))} onDone={onRestDone} /> : null}
+      {live && restEndsAt ? (
+        <RestTimer endsAt={restEndsAt} sound={settings.restCountdownSound} onChange={(v) => (v == null ? endRest() : setRestEndsAt(v))} onDone={onRestDone} nextLabel={nextLabel} />
+      ) : null}
 
       <NoteSheet
         visible={!!noteFor}
@@ -414,6 +427,6 @@ export default function SessionScreen() {
             );
         }}
       />
-    </KeyboardAvoidingView>
+    </View>
   );
 }

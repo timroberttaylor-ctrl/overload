@@ -587,15 +587,20 @@ export function getSessionSummary(db: DB, sessionId: string): SessionSummary | u
     for (const pr of findPRs(previous, current)) prs.push({ exerciseName: g.exercise.name, pr });
   }
 
-  // What the engine suggests next time (assume the next session is a few days out)
+  // What the engine suggests the next time this program day comes round (one cycle later),
+  // with that week's phase and any accepted week plan applied, exactly as the session will start.
   const next: SessionSummary['next'] = [];
   const enrolment = s.enrolmentId ? db.select().from(enrolments).where(eq(enrolments.id, s.enrolmentId)).get() : undefined;
   if (enrolment && s.programDay != null) {
-    const plan = programDayPlan(db, enrolment, s.programDay);
     const settings = getSettings(db);
-    for (const slot of plan.slots) {
-      if (!detail.groups.some((g) => g.programExerciseId === slot.slot.id)) continue;
-      next.push({ exerciseName: slot.exercise.name, target: targetForSlot(db, slot, addDays(s.date, 3), settings) });
+    const current = programDayPlan(db, enrolment, s.programDay);
+    const nextDay = s.programDay + current.cycleLength;
+    if (nextDay < current.totalDays) {
+      const plan = programDayPlan(db, enrolment, nextDay);
+      for (const slot of plan.slots) {
+        if (!detail.groups.some((g) => g.programExerciseId === slot.slot.id)) continue;
+        next.push({ exerciseName: slot.exercise.name, target: targetForSlot(db, slot, addDays(s.date, 7), settings, slot.adjust) });
+      }
     }
   }
 

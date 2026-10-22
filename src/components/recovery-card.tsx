@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { View } from 'react-native';
 
 import { addDays } from '@/core/dates';
@@ -6,7 +5,7 @@ import type { HealthDay } from '@/db/repositories/health';
 import { useTheme } from '@/hooks/use-theme';
 
 import { MiniBars } from './mini-bars';
-import { Body, Button, Card, Eyebrow, H2, Icon, Row, Small, Stat, StatStrip, Tag } from './ui';
+import { Card, Eyebrow, H2, Icon, Row, Small, Stat, StatStrip, Tag } from './ui';
 
 const SOURCE_LABEL: Record<string, string> = { oura: 'Oura', sample: 'Sample data', healthconnect: 'Health Connect', healthkit: 'Apple Health', manual: 'Manual' };
 
@@ -14,18 +13,8 @@ const SOURCE_LABEL: Record<string, string> = { oura: 'Oura', sample: 'Sample dat
 export function RecoveryCard({ days, today }: { days: HealthDay[]; today: string }) {
   const t = useTheme();
   const latest = days[days.length - 1];
-  if (!latest) {
-    return (
-      <Card>
-        <Row gap={8}>
-          <Icon name="pulse" size={20} color={t.accent} />
-          <H2>Recovery</H2>
-        </Row>
-        <Body muted>Readiness, sleep and HRV will show here so training can adapt to how recovered you are. Wearable sync arrives after launch; for now you can load sample data to try it.</Body>
-        <Button compact variant="secondary" icon="flask-outline" title="Sample data in Settings" onPress={() => router.push('/settings')} />
-      </Card>
-    );
-  }
+  // Nothing to show until wearable sync ships (post-launch); don't advertise a missing feature.
+  if (!latest) return null;
   const recent = days.slice(-14);
   const hrv = recent.filter((d) => d.hrvMs != null);
   const baseline = hrv.length > 3 ? hrv.slice(0, -1).reduce((s, d) => s + d.hrvMs!, 0) / (hrv.length - 1) : null;

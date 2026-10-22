@@ -1,8 +1,11 @@
 import { setAudioModeAsync, useAudioPlayer, type AudioPlayer } from 'expo-audio';
+import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, Vibration, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/hooks/use-theme';
+import { cancelRestAlert, scheduleRestAlert } from '@/integrations/rest-alert';
 
 const TICK = require('../../assets/sounds/rest-tick.wav');
 const DONE = require('../../assets/sounds/rest-done.wav');
@@ -16,9 +19,26 @@ function beep(p: AudioPlayer) {
   }
 }
 
-/** Countdown driven by an end timestamp, so it stays correct if the app is backgrounded. */
-export function RestTimer({ endsAt, onChange, onDone, sound = true }: { endsAt: number; onChange: (endsAt: number | null) => void; onDone: () => void; sound?: boolean }) {
+/**
+ * Countdown driven by an end timestamp, so it stays correct if the app is backgrounded.
+ * A local notification covers the locked-phone case, where the in-app beep can't play.
+ */
+export function RestTimer({
+  endsAt,
+  onChange,
+  onDone,
+  sound = true,
+  nextLabel,
+}: {
+  endsAt: number;
+  onChange: (endsAt: number | null) => void;
+  onDone: () => void;
+  sound?: boolean;
+  /** What comes next, for the locked-phone alert ("Bench press · set 3") */
+  nextLabel?: string;
+}) {
   const t = useTheme();
+  const insets = useSafeAreaInsets();
   const [now, setNow] = useState(() => Date.now());
   const left = Math.max(0, Math.ceil((endsAt - now) / 1000));
   const tick = useAudioPlayer(TICK);
@@ -36,6 +56,12 @@ export function RestTimer({ endsAt, onChange, onDone, sound = true }: { endsAt: 
     return () => clearInterval(id);
   }, []);
 
+  // One alert per end time: re-scheduled on ±15, cancelled on Skip, finish or leaving the workout.
+  useEffect(() => {
+    const id = scheduleRestAlert(endsAt, nextLabel ? `Up next: ${nextLabel}` : 'Time for your next set.');
+    return () => cancelRestAlert(id);
+  }, [endsAt, nextLabel]);
+
   useEffect(() => {
     if (sound && left >= 1 && left <= 3 && lastBeep.current !== left) {
       lastBeep.current = left;
@@ -43,7 +69,7 @@ export function RestTimer({ endsAt, onChange, onDone, sound = true }: { endsAt: 
     }
     if (left === 0) {
       if (sound) beep(done);
-      Vibration.vibrate([0, 250, 120, 250]);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       onDone();
     }
   }, [left, onDone, sound, tick, done]);
@@ -51,23 +77,23 @@ export function RestTimer({ endsAt, onChange, onDone, sound = true }: { endsAt: 
   const mm = Math.floor(left / 60);
   const ss = String(left % 60).padStart(2, '0');
   return (
-    <View style={[styles.bar, { backgroundColor: t.accent }]}>
-      <Text style={[styles.time, { color: t.accentText }]}>
+    <View style={[styles.bar, { backgroundColor: t.accent, bottom: 12 + insets.bottom }]}>
+      <Text style={[styles.time, { color: t.accentText }]} accessibilityRole="timer" accessibilityLabel={`Rest, ${mm} minutes ${left % 60} seconds left`}>
         Rest {mm}:{ss}
       </Text>
       <View style={styles.actions}>
-        <Btn label="−15" onPress={() => onChange(endsAt - 15_000)} />
-        <Btn label="+15" onPress={() => onChange(endsAt + 15_000)} />
-        <Btn label="Skip" onPress={() => onChange(null)} />
+        <Btn label="−15" a11y="Remove 15 seconds" onPress={() => onChange(endsAt - 15_000)} />
+        <Btn label="+15" a11y="Add 15 seconds" onPress={() => onChange(endsAt + 15_000)} />
+        <Btn label="Skip" a11y="Skip rest" onPress={() => onChange(null)} />
       </View>
     </View>
   );
 }
 
-function Btn({ label, onPress }: { label: string; onPress: () => void }) {
+function Btn({ label, a11y, onPress }: { label: string; a11y: string; onPress: () => void }) {
   const t = useTheme();
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" style={[styles.btn, { borderColor: t.accentText }]}>
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={a11y} hitSlop={4} style={[styles.btn, { borderColor: t.accentText }]}>
       <Text style={{ color: t.accentText, fontWeight: '700' }}>{label}</Text>
     </Pressable>
   );
@@ -78,7 +104,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 12,
     right: 12,
-    bottom: 16,
     borderRadius: 14,
     paddingVertical: 10,
     paddingHorizontal: 14,
@@ -86,13 +111,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     elevation: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
   },
   time: { fontSize: 20, fontWeight: '800', fontVariant: ['tabular-nums'] },
   actions: { flexDirection: 'row', gap: 8 },
   btn: {
     borderWidth: 1,
     borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
 });
