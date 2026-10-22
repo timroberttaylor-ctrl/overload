@@ -1,3 +1,4 @@
+import { requireOptionalNativeModule } from 'expo';
 import { AppState, Platform } from 'react-native';
 
 /**
@@ -5,9 +6,11 @@ import { AppState, Platform } from 'react-native';
  * iOS suspends JavaScript in the background, so the in-app beep can't fire; a local
  * notification scheduled for the end of rest does. Local only: no push, no server.
  *
- * expo-notifications is loaded lazily: in Expo Go on Android (SDK 53+) importing it throws
- * ("Cannot find native module 'ExpoTopicSubscriptionModule'"), which would take the whole
- * workout screen down. Where it can't load, rest alerts are simply skipped.
+ * expo-notifications is loaded lazily, and only when its native modules exist: in Expo Go on
+ * Android (SDK 53+) importing it throws ("Cannot find native module 'ExpoTopicSubscriptionModule'").
+ * A try/catch isn't enough: in development, Metro reports an error thrown while a module
+ * initialises as an uncaught error even when the require is wrapped. So check first, and where
+ * it can't load, rest alerts are simply skipped.
  */
 
 type Notifications = typeof import('expo-notifications');
@@ -20,13 +23,38 @@ let permission: Promise<boolean> | null = null;
 function load(): Notifications | null {
   if (mod !== undefined) return mod;
   if (Platform.OS === 'web') return (mod = null);
+  if (!nativeModulesPresent(Platform.OS === 'android' ? [...NOTIFICATION_MODULES, 'ExpoTopicSubscriptionModule'] : NOTIFICATION_MODULES)) return (mod = null);
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    mod = require('expo-notifications') as Notifications;
+    mod = (require('expo-notifications') as Notifications | undefined) ?? null;
   } catch {
     mod = null;
   }
   return mod;
+}
+
+/** Native modules expo-notifications requires as soon as it's imported (from its build, SDK 58). */
+const NOTIFICATION_MODULES = [
+  'ExpoNotificationScheduler',
+  'ExpoNotificationPresenter',
+  'ExpoNotificationPermissionsModule',
+  'ExpoNotificationsHandlerModule',
+  'ExpoNotificationsEmitter',
+  'ExpoNotificationChannelManager',
+  'ExpoNotificationChannelGroupManager',
+  'ExpoNotificationCategoriesModule',
+  'ExpoBadgeModule',
+  'ExpoPushTokenManager',
+  'NotificationsServerRegistrationModule',
+  'ExpoBackgroundNotificationTasksModule',
+];
+
+function nativeModulesPresent(names: string[]): boolean {
+  try {
+    return names.every((n) => requireOptionalNativeModule(n) != null);
+  } catch {
+    return false;
+  }
 }
 
 function setUpOnce(N: Notifications) {

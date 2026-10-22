@@ -2,6 +2,7 @@
  * Rest timer on the lock screen and Dynamic Island. iOS installed builds only: in Expo Go and
  * on Android the native module is missing, so everything here quietly does nothing.
  */
+import { requireOptionalNativeModule } from 'expo';
 import { Platform } from 'react-native';
 
 import type { RestActivityProps } from '@/widgets/rest-activity';
@@ -14,10 +15,12 @@ let factory: Factory | null | undefined;
 function load(): Factory | null {
   if (factory !== undefined) return factory;
   if (Platform.OS !== 'ios') return (factory = null);
+  // Check before requiring: a module that throws while initialising shows as an uncaught error in dev.
+  if (requireOptionalNativeModule('ExpoWidgets') == null) return (factory = null);
   try {
     // Lazy: requiring it creates the activity type, which needs the native module.
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    factory = (require('@/widgets/rest-activity') as { default: Factory }).default;
+    factory = (require('@/widgets/rest-activity') as { default?: Factory } | undefined)?.default ?? null;
   } catch {
     factory = null;
   }

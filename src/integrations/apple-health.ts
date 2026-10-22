@@ -3,7 +3,7 @@
  * iOS installed builds only: in Expo Go and on Android the native module is missing,
  * so everything here reports "unavailable" and does nothing.
  */
-import { Platform } from 'react-native';
+import { NativeModules, Platform, TurboModuleRegistry } from 'react-native';
 
 type HK = typeof import('@kingstinct/react-native-healthkit');
 
@@ -15,14 +15,25 @@ const WORKOUT = 'HKWorkoutTypeIdentifier' as const;
 
 let hk: HK | null | undefined;
 
+/** The HealthKit module is built on Nitro; without Nitro's native side (Expo Go) it can't load. */
+function nitroPresent(): boolean {
+  try {
+    return TurboModuleRegistry.get('NitroModules') != null || NativeModules.NitroModules != null;
+  } catch {
+    return false;
+  }
+}
+
 function load(): HK | null {
   if (hk !== undefined) return hk;
   if (Platform.OS !== 'ios') return (hk = null);
+  // Check before requiring: a module that throws while initialising shows as an uncaught error in dev.
+  if (!nitroPresent()) return (hk = null);
   try {
     // Lazy so Expo Go and Android (no native module) never load it.
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mod = require('@kingstinct/react-native-healthkit') as HK;
-    hk = mod.isHealthDataAvailable() ? mod : null;
+    const mod = require('@kingstinct/react-native-healthkit') as HK | undefined;
+    hk = mod?.isHealthDataAvailable() ? mod : null;
   } catch {
     hk = null;
   }
