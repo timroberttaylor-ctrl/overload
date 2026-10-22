@@ -5,7 +5,7 @@ import { Alert, Pressable, Text, View } from 'react-native';
 import { ExercisePicker } from '@/components/exercise-picker';
 import { Body, Button, Card, Field, H2, Icon, Pill, Row, Screen, Small, Toggle } from '@/components/ui';
 import { getDb } from '@/db/client';
-import { defaultSlot, deleteProgram, draftFromTemplate, emptyDraft, LIMITS, saveProgram, seriesLetters, type DraftDay, type DraftSlot, type ProgramDraft } from '@/db/repositories/builder';
+import { defaultSlot, deleteProgram, draftFromTemplate, emptyDraft, LIMITS, phasesFit, saveProgram, seriesLetters, type DraftDay, type DraftSlot, type ProgramDraft } from '@/db/repositories/builder';
 import { getExercise } from '@/db/repositories/exercises';
 import type { ProgressionRuleKind } from '@/db/schema';
 import { useTheme } from '@/hooks/use-theme';
@@ -184,6 +184,13 @@ export default function ProgramBuilderScreen() {
           </View>
           <Toggle value={draft.deloadLastWeek} onValueChange={(v) => set({ deloadLastWeek: v })} label="Deload in the last week" />
         </Row>
+        {draft.phases && draft.phases.length > 1 ? (
+          <Small style={{ color: phasesFit(draft) ? t.textSecondary : t.warning }}>
+            {phasesFit(draft)
+              ? `Keeps the original ${draft.phases.length} phases (build, intensify, peak, deload).`
+              : 'Changing the length or deload replaces the original phases with build weeks plus an optional deload.'}
+          </Small>
+        ) : null}
       </Card>
 
       <Small>

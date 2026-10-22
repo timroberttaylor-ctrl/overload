@@ -6,7 +6,7 @@ import { PLAN_LABEL, REGION_LABEL, regionAffects, setsUnderPlan, type WeekDecisi
 
 import { enrolments, enrolmentSwaps, exercises, weekPlans } from '../schema';
 import type { DB } from '../types';
-import { getTemplateDetail, phaseForWeek, setsForPhase, type DayDetail, type ExerciseRow, type ProgramExercise } from './programs';
+import { getTemplateDetail, phaseForWeek, repsForPhase, setsForPhase, type DayDetail, type ExerciseRow, type ProgramExercise } from './programs';
 import { isIntArray, safeJsonParse } from '@/core/json';
 
 export type Enrolment = typeof enrolments.$inferSelect;
@@ -161,7 +161,8 @@ export function programDayPlan(db: DB, enrolment: Enrolment, programDay: number)
     const isAccessory = !ex.isCompound || ex.pattern === 'isolation';
     const { adjust, note } = slotAdjust(weekPlan, phase.kind === 'deload', ex);
     return {
-      slot,
+      // Main lifts take the phase's rep range (e.g. 8–10 → 5–6 when intensifying); same slot id, so history carries on.
+      slot: { ...slot, ...repsForPhase(slot.rule, slot.repMin, slot.repMax, phase.repMult) },
       exercise: ex,
       swap,
       workingSets: setsUnderPlan(setsForPhase(slot.sets, phase.volumeMult), phase.kind === 'deload' ? null : weekPlan, isAccessory, slot.id),

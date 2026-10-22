@@ -102,6 +102,11 @@ export const phases = sqliteTable('phases', {
   volumeMult: real('volume_mult').notNull().default(1),
   /** RPE target applied to working sets in this phase (null = per exercise) */
   rpeTarget: real('rpe_target'),
+  /**
+   * Multiplier on the rep range of RPE-prescribed (main) lifts in this phase, e.g. 0.6 turns
+   * 8–10 into 5–6. Null means 1. The RPE engine turns fewer reps into heavier loads.
+   */
+  repMult: real('rep_mult'),
   ...audit,
 });
 

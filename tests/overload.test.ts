@@ -120,6 +120,15 @@ describe('RPE-based', () => {
     expect(bad.weightKg).toBeLessThan(100);
     expect(bad.weightKg).toBeGreaterThanOrEqual(90);
   });
+
+  it('still moves up one plate step at light loads, where 7.5% is less than a step', () => {
+    // 20 kg × 12 @ RPE 7 says this is far too light; 7.5 % of 20 kg is only 1.5 kg.
+    const light = nextTarget({ prescription: rpe, history: [sess('2026-10-15', 20, [12], 7)], today: '2026-10-22' });
+    expect(light.weightKg).toBe(22.5);
+    // …but a set that was about right stays put.
+    const right = nextTarget({ prescription: rpe, history: [sess('2026-10-15', 20, [6], 9)], today: '2026-10-22' });
+    expect(right.weightKg).toBe(20);
+  });
 });
 
 describe('adjustments', () => {

@@ -8,7 +8,7 @@ import { defaultTempo } from './tempo-defaults';
 import { normaliseTempo } from '@/core/tempo';
 
 /** Bump when seed content changes; seeding re-runs (as upserts) when this differs. */
-export const SEED_VERSION = 2; // 2: tempo on every prescription
+export const SEED_VERSION = 3; // 2: tempo on every prescription · 3: six more programs, phase rep ranges
 
 export const dayId = (templateId: string, dayIndex: number) => `${templateId}:d${dayIndex}`;
 export const slotId = (templateId: string, dayIndex: number, position: number) => `${templateId}:d${dayIndex}:${position}`;
@@ -73,6 +73,7 @@ export function seedDatabase(db: DB, opts: { force?: boolean } = {}): { seeded: 
           kind: ph.kind,
           volumeMult: ph.volumeMult,
           rpeTarget: ph.rpeTarget ?? null,
+          repMult: ph.repMult ?? null,
         };
         const { id: _pid, ...rest } = row;
         tx.insert(phases).values(row).onConflictDoUpdate({ target: phases.id, set: rest }).run();

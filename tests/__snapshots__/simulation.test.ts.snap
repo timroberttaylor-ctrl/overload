@@ -91,11 +91,11 @@ exports[`12-week simulation > progresses, adapts to fatigue, and stays stable 1`
     "week": 11,
   },
   {
-    "bench": 92.5,
+    "bench": 95,
     "fatigue": 2.4,
     "plan": "reduce",
     "program": "strength_block_4",
-    "squat": 117.5,
+    "squat": 120,
     "week": 12,
   },
 ]

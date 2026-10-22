@@ -28,6 +28,13 @@ describe('planner rules', () => {
     expect(d.reasons.join(' ')).toMatch(/Every session done, 98% of sets hit target/);
   });
 
+  it("doesn't add sets in the program's peak week", () => {
+    const d = decideWeek(input({ programPeak: true }));
+    expect(d.kind).toBe('as_written');
+    expect(d.reasons.join(' ')).toMatch(/peak week/);
+    expect(decideWeek(input({ programPeak: true, checkIn: { ...fresh, fatigue: 4 } })).kind).toBe('reduce'); // warnings still apply
+  });
+
   it('never pushes without a check-in, with missed sessions, or with low motivation', () => {
     expect(decideWeek(input({ checkIn: null })).kind).toBe('as_written');
     expect(decideWeek(input({ checkIn: null })).reasons.at(-1)).toMatch(/No check-in/);

@@ -255,6 +255,7 @@ export function recommendWeek(db: DB, enrolmentId: string, planWeek: number, che
     week: planWeek,
     weeksSinceDeload: weeksSinceDeload(db, enrolmentId, planWeek),
     programDeload: phaseForWeek(tpl.phases, planWeek).kind === 'deload',
+    programPeak: phaseForWeek(tpl.phases, planWeek).kind === 'realisation',
     trainableGroups,
     checkIn,
     metrics,

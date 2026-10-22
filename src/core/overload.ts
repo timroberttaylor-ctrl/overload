@@ -196,7 +196,10 @@ export function nextTarget(args: {
     let next = roundToIncrement(e1 * pctOf1RM(p.repMin, targetRpe), p.roundStepKg, 'nearest');
     const capUp = w * 1.075;
     const capDown = w * 0.9;
-    next = Math.min(Math.max(next, roundToIncrement(capDown, p.roundStepKg, 'up')), roundToIncrement(capUp, p.roundStepKg, 'down'));
+    // At light loads 7.5 % is less than one plate step (e.g. 30 kg × 7.5 % = 2.25 kg < 2.5 kg), which
+    // would freeze the lift for ever; always allow one step up when the e1RM says heavier.
+    const upper = Math.max(roundToIncrement(capUp, p.roundStepKg, 'down'), next > w ? w + p.roundStepKg : w);
+    next = Math.min(Math.max(next, roundToIncrement(capDown, p.roundStepKg, 'up')), upper);
     const recent = lastIncreaseDate(history);
     if (next > w && recent && daysBetween(recent, args.today) < 7) {
       return result({ weightKg: w, reps: flat(p.repMin), kind: 'hold', reason: `Held at ${fmt(w)}: load already went up this week.`, fails: 0, e1rmKg: e1 });

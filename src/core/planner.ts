@@ -81,6 +81,8 @@ export type PlanInput = {
   weeksSinceDeload: number;
   /** The program already schedules a deload for `week` */
   programDeload: boolean;
+  /** The program schedules a peak (realisation) week: low-rep top sets, so don't add volume. */
+  programPeak?: boolean;
   /** Muscle groups the planned week trains as a main muscle (where extra sets can go) */
   trainableGroups?: MuscleGroup[];
   checkIn: CheckIn | null;
@@ -183,6 +185,10 @@ export function decideWeek(input: PlanInput): WeekDecision {
   }
 
   const pushReady = !!c && c.motivation >= 4 && c.fatigue <= 3 && c.soreness <= 3 && c.jointPain <= 2 && hr != null && hr >= 0.9 && (m.rpeGap == null || m.rpeGap <= 0) && adh != null && adh >= 1;
+  if (pushReady && input.programPeak) {
+    reasons.push(`Every session done and ${pct(hr!)} of sets hit target. This is the program's peak week, so sets stay as written: heavy, low-rep top sets go best when you're fresh.`);
+    return finish({ kind: 'as_written', volumeMult: 1, rpeCap: null });
+  }
   if (pushReady) {
     reasons.push(`Every session done, ${pct(hr!)} of sets hit target${m.rpeGap != null ? `, effort ${m.rpeGap <= 0 ? 'at or below' : 'above'} plan` : ''}, and motivation ${c!.motivation}/5.`);
     const lagging = m.volume ? laggingGroups(m.volume, input.trainableGroups ?? []) : [];

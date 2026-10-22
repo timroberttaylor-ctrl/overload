@@ -38,11 +38,11 @@ describe('migrations', () => {
 });
 
 describe('seed', () => {
-  it('loads the library and four templates, idempotently', async () => {
+  it('loads the library and every template, idempotently', async () => {
     const { db, raw } = await createTestDb();
     const count = (t: string) => (raw.prepare(`select count(*) n from ${t}`).get() as { n: number }).n;
     expect(count('exercises')).toBe(SEED_EXERCISES.length);
-    expect(count('program_templates')).toBe(4);
+    expect(count('program_templates')).toBe(SEED_PROGRAMS.length);
     const before = count('program_exercises');
     expect(seedDatabase(db).seeded).toBe(false); // already at current version
     seedDatabase(db, { force: true });

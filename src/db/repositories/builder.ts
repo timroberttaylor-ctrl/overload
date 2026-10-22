@@ -13,7 +13,7 @@ import { normaliseTempo } from '@/core/tempo';
 import { GROUP_LABEL, groupOf, type MuscleGroup } from '@/core/volume';
 import { defaultTempo } from '@/db/seed/tempo-defaults';
 
-import { enrolments, exercises, phases, programExercises, programTemplates, PROGRESSION_RULES, templateDays, type ProgressionMethod, type ProgressionRuleKind } from '../schema';
+import { enrolments, exercises, phases, programExercises, programTemplates, PROGRESSION_RULES, templateDays, type PhaseKind, type ProgressionMethod, type ProgressionRuleKind } from '../schema';
 import type { DB } from '../types';
 import { getTemplateDetail } from './programs';
 
@@ -45,7 +45,28 @@ export type ProgramDraft = {
   /** Make the last week a deload (half the sets, lighter loads, RPE 6) */
   deloadLastWeek: boolean;
   days: DraftDay[];
+  /**
+   * Phases carried over from the program being copied or edited. Kept on save only while they
+   * still fit (same length, same deload choice); otherwise the simple build + deload is used.
+   */
+  phases?: DraftPhase[];
 };
+
+export type DraftPhase = { weekFrom: number; weekTo: number; kind: PhaseKind; volumeMult: number; rpeTarget: number | null; repMult: number | null };
+
+/** True when phases cover weeks 1..weeks exactly once, in order, and agree with the deload switch. */
+export function phasesFit(draft: Pick<ProgramDraft, 'weeks' | 'deloadLastWeek' | 'phases'>): boolean {
+  const ph = draft.phases;
+  if (!ph?.length) return false;
+  let next = 1;
+  for (const p of ph) {
+    if (p.weekFrom !== next || p.weekTo < p.weekFrom) return false;
+    next = p.weekTo + 1;
+  }
+  if (next !== draft.weeks + 1) return false;
+  const last = ph[ph.length - 1];
+  return (last.kind === 'deload' && last.weekFrom === draft.weeks) === draft.deloadLastWeek;
+}
 
 export const LIMITS = { name: 60, summary: 200, weeks: [1, 16], days: [1, 14], slots: 12, sets: [1, 10], reps: [1, 100], rest: [0, 600], warmups: [0, 4], minutes: [15, 180] } as const;
 
@@ -172,11 +193,15 @@ export function saveProgram(db: DB, draft: ProgramDraft, templateId?: string): s
       .set({ deletedAt: now, updatedAt: now })
       .where(and(eq(phases.templateId, id), isNull(phases.deletedAt)))
       .run();
-    const deload = draft.deloadLastWeek && draft.weeks >= 2;
-    tx.insert(phases)
-      .values({ id: uuid(), templateId: id, weekFrom: 1, weekTo: deload ? draft.weeks - 1 : draft.weeks, kind: 'accumulation', volumeMult: 1 })
-      .run();
-    if (deload) tx.insert(phases).values({ id: uuid(), templateId: id, weekFrom: draft.weeks, weekTo: draft.weeks, kind: 'deload', volumeMult: 0.5, rpeTarget: 6 }).run();
+    if (phasesFit(draft)) {
+      for (const p of draft.phases!) tx.insert(phases).values({ id: uuid(), templateId: id, ...p }).run();
+    } else {
+      const deload = draft.deloadLastWeek && draft.weeks >= 2;
+      tx.insert(phases)
+        .values({ id: uuid(), templateId: id, weekFrom: 1, weekTo: deload ? draft.weeks - 1 : draft.weeks, kind: 'accumulation', volumeMult: 1 })
+        .run();
+      if (deload) tx.insert(phases).values({ id: uuid(), templateId: id, weekFrom: draft.weeks, weekTo: draft.weeks, kind: 'deload', volumeMult: 0.5, rpeTarget: 6 }).run();
+    }
 
     // Days: free every index first (the (template, day_index) pair is unique), then place the draft's days.
     const allDays = tx.select().from(templateDays).where(eq(templateDays.templateId, id)).all();
@@ -270,6 +295,7 @@ export function draftFromTemplate(db: DB, templateId: string): ProgramDraft {
     minutes: t.template.minutes,
     level: t.template.level,
     deloadLastWeek: deload,
+    phases: t.phases.map((p) => ({ weekFrom: p.weekFrom, weekTo: p.weekTo, kind: p.kind, volumeMult: p.volumeMult, rpeTarget: p.rpeTarget, repMult: p.repMult })),
     days: t.days.map(({ day, slots }) => ({
       id: day.id,
       name: day.name,

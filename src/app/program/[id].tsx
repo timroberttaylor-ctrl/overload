@@ -8,7 +8,7 @@ import { isoDate } from '@/core/dates';
 import { getDb } from '@/db/client';
 import { copyProgram } from '@/db/repositories/builder';
 import { getActiveEnrolment, startProgram } from '@/db/repositories/enrolments';
-import { getTemplateDetail, setsForPhase } from '@/db/repositories/programs';
+import { getTemplateDetail, repsForPhase, setsForPhase } from '@/db/repositories/programs';
 import { useDbQuery } from '@/hooks/use-db-query';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -21,6 +21,8 @@ export default function ProgramDetailScreen() {
   const [data] = useDbQuery((db) => ({ detail: getTemplateDetail(db, id), active: getActiveEnrolment(db) }));
   if (!data?.detail) return null;
   const { template, phases, days } = data.detail;
+  // First RPE-prescribed lift, used to show how the reps change from phase to phase.
+  const mainLift = days.flatMap((d) => d.slots).find((x) => x.slot.rule === 'rpe');
   const isActive = data.active?.templateId === template.id;
 
   const start = () => {
@@ -70,7 +72,13 @@ export default function ProgramDetailScreen() {
         <View style={{ flexDirection: 'row', gap: 4 }}>
           {phases.map((p) => (
             <View key={p.id} style={{ flex: p.weekTo - p.weekFrom + 1, gap: 4 }}>
-              <View style={{ height: 8, borderRadius: 4, backgroundColor: p.kind === 'deload' ? t.backgroundSelected : p.kind === 'intensification' ? t.warning : t.accent }} />
+              <View
+                style={{
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: p.kind === 'deload' ? t.backgroundSelected : p.kind === 'realisation' ? t.danger : p.kind === 'intensification' ? t.warning : t.accent,
+                }}
+              />
               <Small>
                 {PHASE_LABEL[p.kind]} · wk {p.weekFrom}
                 {p.weekTo !== p.weekFrom ? `–${p.weekTo}` : ''}
@@ -78,6 +86,18 @@ export default function ProgramDetailScreen() {
             </View>
           ))}
         </View>
+        {mainLift && phases.some((p) => p.repMult != null && p.repMult !== 1) ? (
+          <Small>
+            {`${mainLift.exercise.name}: `}
+            {phases
+              .filter((p) => p.kind !== 'deload')
+              .map((p) => {
+                const r = repsForPhase('rpe', mainLift.slot.repMin, mainLift.slot.repMax, p.repMult);
+                return `${PHASE_LABEL[p.kind].toLowerCase()} ${r.repMin === r.repMax ? r.repMin : `${r.repMin}–${r.repMax}`} reps${p.rpeTarget ? ` @ RPE ${p.rpeTarget}` : ''}`;
+              })
+              .join(' → ')}
+          </Small>
+        ) : null}
       </View>
 
       <Button title={isActive ? 'Restart program' : 'Start program'} icon={isActive ? 'refresh' : 'play'} onPress={start} variant={isActive ? 'secondary' : 'primary'} />

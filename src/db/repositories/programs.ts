@@ -45,8 +45,18 @@ export function getTemplateDetail(db: DB, templateId: string): TemplateDetail | 
 }
 
 /** Phase covering a 1-based program week (falls back to a neutral accumulation phase). */
-export function phaseForWeek(ph: Phase[], week: number): Pick<Phase, 'kind' | 'volumeMult' | 'rpeTarget'> {
-  return ph.find((p) => week >= p.weekFrom && week <= p.weekTo) ?? { kind: 'accumulation', volumeMult: 1, rpeTarget: null };
+export function phaseForWeek(ph: Phase[], week: number): Pick<Phase, 'kind' | 'volumeMult' | 'rpeTarget' | 'repMult'> {
+  return ph.find((p) => week >= p.weekFrom && week <= p.weekTo) ?? { kind: 'accumulation', volumeMult: 1, rpeTarget: null, repMult: null };
+}
+
+/**
+ * Rep range for a slot in a phase. Only RPE-prescribed (main) lifts follow the phase's rep
+ * multiplier; accessories keep their own range. Never below 1 rep; max never below min.
+ */
+export function repsForPhase(rule: string, repMin: number, repMax: number, repMult: number | null | undefined): { repMin: number; repMax: number } {
+  if (rule !== 'rpe' || repMult == null || repMult === 1) return { repMin, repMax };
+  const min = Math.max(1, Math.round(repMin * repMult));
+  return { repMin: min, repMax: Math.max(min, Math.round(repMax * repMult)) };
 }
 
 /** Working sets after applying a phase volume multiplier (never below 1). */
