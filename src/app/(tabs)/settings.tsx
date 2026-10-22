@@ -1,9 +1,9 @@
 import Constants from 'expo-constants';
 import { useState } from 'react';
-import { Alert, Linking, View } from 'react-native';
+import { Alert, Linking, Platform, View } from 'react-native';
 
 import { RecoveryDataCard } from '@/components/recovery-data-card';
-import { PRIVACY_URL, SUPPORT_URL } from '@/constants/links';
+import { feedbackUrl, PRIVACY_URL, SUPPORT_URL } from '@/constants/links';
 import { Body, Button, Card, Eyebrow, H1, H2, Pill, Row, Screen, Small, Toggle } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { useAppearance } from '@/state/appearance';
@@ -134,6 +134,15 @@ export default function SettingsScreen() {
           <Button compact variant="secondary" icon="shield-checkmark-outline" title="Privacy policy" onPress={() => Linking.openURL(PRIVACY_URL).catch(() => Alert.alert('Could not open the privacy policy'))} />
           <Button compact variant="ghost" icon="help-circle-outline" title="Help & support" onPress={() => Linking.openURL(SUPPORT_URL).catch(() => Alert.alert('Could not open the support page'))} />
         </Row>
+        <Button
+          compact
+          variant="secondary"
+          icon="chatbubble-ellipses-outline"
+          title="Send feedback or report a bug"
+          onPress={() =>
+            Linking.openURL(feedbackUrl(Constants.expoConfig?.version ?? '', `${Platform.OS} ${Platform.Version}`)).catch(() => Alert.alert('Could not open the feedback page'))
+          }
+        />
       </Card>
 
       <Small>OVRLD {Constants.expoConfig?.version ?? ''} · your data stays on this phone</Small>

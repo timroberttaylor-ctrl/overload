@@ -776,3 +776,79 @@ export function sessionForProgramDay(db: DB, enrolmentId: string, programDay: nu
     .orderBy(desc(sessions.startedAt))
     .get();
 }
+
+// ---------------------------------------------------------------------------
+// In-workout extras: PRs as you log, and history without leaving the player
+// ---------------------------------------------------------------------------
+
+/**
+ * Records this set just beat, compared with every other completed working set of the
+ * exercise (earlier workouts and earlier sets today). Empty for warm-ups, bodyweight sets
+ * and a lift's very first session (nothing to beat yet).
+ */
+export function prForSet(db: DB, setId: string): PR[] {
+  const row = db.select({ l: setLogs, s: sessions }).from(setLogs).innerJoin(sessions, eq(setLogs.sessionId, sessions.id)).where(eq(setLogs.id, setId)).get();
+  if (!row || !row.l.completed || row.l.setType === 'warmup' || row.l.weightKg == null || row.l.reps == null || row.l.weightKg <= 0) return [];
+  const others = db
+    .select({ l: setLogs, s: sessions })
+    .from(setLogs)
+    .innerJoin(sessions, eq(setLogs.sessionId, sessions.id))
+    .where(
+      and(
+        eq(setLogs.exerciseId, row.l.exerciseId),
+        eq(setLogs.completed, true),
+        isNull(setLogs.deletedAt),
+        ne(setLogs.setType, 'warmup'),
+        ne(setLogs.id, setId),
+        isNull(sessions.deletedAt),
+        inArray(sessions.status, [...DONE_STATUSES, 'in_progress']),
+      ),
+    )
+    .all()
+    .filter(({ l }) => l.weightKg != null && l.reps != null)
+    .map(({ l, s }) => ({ weightKg: l.weightKg!, reps: l.reps!, rpe: l.rpe, date: s.date, sessionId: s.id }));
+  const current = { weightKg: row.l.weightKg, reps: row.l.reps, rpe: row.l.rpe, date: row.s.date, sessionId: row.s.id };
+  return findPRs(others, [current]);
+}
+
+/** The headline record for a toast: heaviest weight beats a rep record beats an e1RM record. */
+export function headlinePR(prs: PR[]): PR | null {
+  return prs.find((p) => p.kind === 'weight') ?? prs.find((p) => p.kind === 'reps_at_weight') ?? prs.find((p) => p.kind === 'e1rm') ?? null;
+}
+
+export type HistorySession = { sessionId: string; date: string; sets: DatedSet[]; e1rmKg: number };
+export type ExerciseHistory = {
+  /** Newest first, this program slot only */
+  inProgram: HistorySession[];
+  /** Newest first, every session of this exercise */
+  allTime: HistorySession[];
+  bestE1RM: ExerciseProgress['bestE1RM'];
+  heaviest: ExerciseProgress['heaviest'];
+  repRecords: ExerciseProgress['repRecords'];
+};
+
+/** History for the in-workout sheet; the workout in progress is left out. */
+export function exerciseHistory(db: DB, exerciseId: string, opts: { programExerciseId?: string | null; excludeSessionId?: string; limit?: number } = {}): ExerciseHistory {
+  const limit = opts.limit ?? 8;
+  const progress = exerciseProgress(db, exerciseId);
+  const allTime = progress.sessions.filter((s) => s.sessionId !== opts.excludeSessionId);
+  let inProgram: HistorySession[] = [];
+  if (opts.programExerciseId) {
+    const ids = new Set(
+      db
+        .select({ id: setLogs.sessionId })
+        .from(setLogs)
+        .where(and(eq(setLogs.programExerciseId, opts.programExerciseId), eq(setLogs.completed, true), isNull(setLogs.deletedAt)))
+        .all()
+        .map((r) => r.id),
+    );
+    inProgram = allTime.filter((s) => ids.has(s.sessionId));
+  }
+  return {
+    inProgram: inProgram.slice(0, limit),
+    allTime: allTime.slice(0, limit),
+    bestE1RM: progress.bestE1RM,
+    heaviest: progress.heaviest,
+    repRecords: progress.repRecords,
+  };
+}

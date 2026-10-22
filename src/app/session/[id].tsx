@@ -6,17 +6,24 @@ import { Alert, Keyboard, Platform, Pressable, ScrollView, Text, View, type Layo
 import { ExerciseDemo } from '@/components/exercise-demo';
 import { RestTimer } from '@/components/rest-timer';
 import { SetRow, type SetValues } from '@/components/set-row';
+import { HistorySheet } from '@/components/history-sheet';
 import { NoteSheet } from '@/components/note-sheet';
+import { PrToast, type PrToastData } from '@/components/pr-toast';
 import { SwapSheet } from '@/components/swap-sheet';
 import { TempoChip } from '@/components/tempo-chip';
 import { Body, Button, Card, Eyebrow, H2, Icon, ProgressBar, Row, Small } from '@/components/ui';
 import { isoDate } from '@/core/dates';
-import { formatWeight } from '@/core/units';
+import { describeLoading, loadBar } from '@/core/plates';
+import { describePR } from '@/core/records';
+import { formatWeight, kgToDisplay } from '@/core/units';
 import { getDb } from '@/db/client';
 import { getSettings } from '@/db/repositories/settings';
 import {
   addSet,
   discardSession,
+  exerciseHistory,
+  headlinePR,
+  prForSet,
   finishSession,
   getSessionDetail,
   logSet,
@@ -69,6 +76,11 @@ export default function SessionScreen() {
     settings: getSettings(db),
   }));
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
+  const [toast, setToast] = useState<PrToastData | null>(null);
+  /** Sets that beat a record when logged in this visit (shown with a trophy) */
+  const [prSets, setPrSets] = useState<Set<string>>(() => new Set());
+  const [historyFor, setHistoryFor] = useState<ExerciseGroup | null>(null);
+  const hideToast = useCallback(() => setToast(null), []);
   const [swapFor, setSwapFor] = useState<ExerciseGroup | null>(null);
   /** Which note is being written: a set (by id) or the whole workout */
   const [noteFor, setNoteFor] = useState<{ kind: 'set'; set: SetLog; title: string } | { kind: 'session' } | null>(null);
@@ -111,14 +123,29 @@ export default function SessionScreen() {
   const toggle = (group: ExerciseGroup, set: SetLog, v: SetValues) =>
     guard('Log set', () => {
       Keyboard.dismiss();
-      if (set.completed) return unlogSet(getDb(), set.id);
+      if (set.completed) {
+        setPrSets((p) => {
+          const n = new Set(p);
+          n.delete(set.id);
+          return n;
+        });
+        return unlogSet(getDb(), set.id);
+      }
       if (v.weightKg == null || v.reps == null) throw new Error('Enter a weight (0 for bodyweight) and reps first');
       logSet(getDb(), set.id, {
         weightKg: v.weightKg,
         reps: v.reps,
         rpe: v.rpe,
       });
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      const pr = headlinePR(prForSet(getDb(), set.id));
+      if (pr) {
+        const fmt = (kg: number) => formatWeight(kg, unit);
+        setPrSets((p) => new Set(p).add(set.id));
+        setToast({ key: Date.now(), title: `New PR: ${fmt(v.weightKg)} × ${v.reps}`, detail: describePR(pr, fmt) });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      } else {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      }
       // Rest only after the last exercise of a superset round
       const idx = groups.indexOf(group);
       const nextInSeries = groups.slice(idx + 1).find((g) => g.series && g.series === group.series && g.sets.some((s) => !s.completed));
@@ -284,6 +311,9 @@ export default function SessionScreen() {
                   >
                     <Icon name="information-circle-outline" size={22} color={t.textSecondary} />
                   </Pressable>
+                  <Pressable onPress={() => setHistoryFor(g)} accessibilityRole="button" accessibilityLabel="Exercise history" hitSlop={6} style={{ padding: 4 }}>
+                    <Icon name="time-outline" size={22} color={t.textSecondary} />
+                  </Pressable>
                   {live ? (
                     <Pressable onPress={() => setSwapFor(g)} accessibilityRole="button" accessibilityLabel="Swap exercise" hitSlop={6} style={{ padding: 4 }}>
                       <Icon name="swap-horizontal" size={22} color={t.accent} />
@@ -313,6 +343,18 @@ export default function SessionScreen() {
                     Last time ({g.lastTime.date}): {g.lastTime.sets.map((s) => `${formatWeight(s.weightKg, unit)} × ${s.reps}${s.rpe ? ` @${s.rpe}` : ''}`).join(', ')}
                   </Small>
                 ) : null}
+                {live && g.exercise.equipment === 'barbell'
+                  ? (() => {
+                      const next = g.sets.find((x) => !x.completed && x.setType !== 'warmup' && x.weightKg != null) ?? [...g.sets].reverse().find((x) => x.weightKg != null);
+                      const l = next?.weightKg != null ? loadBar(kgToDisplay(next.weightKg, unit), unit, unit === 'kg' ? settings.plateIncrementKg : 5) : null;
+                      return l ? (
+                        <Row gap={6} style={{ flexWrap: 'nowrap' }}>
+                          <Icon name="barbell-outline" size={15} color={t.accent} />
+                          <Small style={{ flex: 1 }}>{describeLoading(l, unit)}</Small>
+                        </Row>
+                      ) : null;
+                    })()
+                  : null}
                 <Row style={{ paddingHorizontal: 4 }}>
                   <Eyebrow style={{ width: 28, textAlign: 'center', fontSize: 10 }}>Set</Eyebrow>
                   <Eyebrow style={{ flex: 1.4, textAlign: 'center', fontSize: 10 }}>{unit}</Eyebrow>
@@ -328,6 +370,7 @@ export default function SessionScreen() {
                     unit={unit}
                     mode={live ? 'player' : 'review'}
                     highlighted={s.id === nextSetId}
+                    pr={prSets.has(s.id)}
                     onSaveDraft={(v) => saveDraft(s, v)}
                     onToggle={(v) => toggle(g, s, v)}
                     onLongPress={() => (live ? setMenu(s, `${g.exercise.name} · set ${labels[i]}`) : setNoteFor({ kind: 'set', set: s, title: `${g.exercise.name} · set ${labels[i]}` }))}
@@ -394,6 +437,16 @@ export default function SessionScreen() {
       {live && restEndsAt ? (
         <RestTimer endsAt={restEndsAt} sound={settings.restCountdownSound} onChange={(v) => (v == null ? endRest() : setRestEndsAt(v))} onDone={onRestDone} nextLabel={nextLabel} />
       ) : null}
+
+      <PrToast toast={toast} onHide={hideToast} />
+
+      <HistorySheet
+        visible={!!historyFor}
+        title={historyFor?.exercise.name ?? ''}
+        unit={unit}
+        history={historyFor ? exerciseHistory(getDb(), historyFor.exercise.id, { programExerciseId: historyFor.programExerciseId, excludeSessionId: session.id }) : null}
+        onClose={() => setHistoryFor(null)}
+      />
 
       <NoteSheet
         visible={!!noteFor}

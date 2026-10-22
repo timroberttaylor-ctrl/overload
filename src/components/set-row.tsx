@@ -16,6 +16,8 @@ type Props = {
   /** Player: show the log tick. Review: edits only. */
   mode: 'player' | 'review';
   highlighted?: boolean;
+  /** This set beat a record when it was logged */
+  pr?: boolean;
   onSaveDraft: (v: SetValues) => void;
   onToggle?: (v: SetValues) => void;
   onLongPress?: () => void;
@@ -31,7 +33,7 @@ const parseRpe = (t: string) => {
  * One set: weight, reps, optional RPE and a tick. Values are pre-filled with the
  * engine's targets, so a set done as planned is a single tap.
  */
-export function SetRow({ set, label, unit, mode, highlighted, onSaveDraft, onToggle, onLongPress }: Props) {
+export function SetRow({ set, label, unit, mode, highlighted, pr, onSaveDraft, onToggle, onLongPress }: Props) {
   const t = useTheme();
   const [w, setW] = useState(weightInputValue(set.weightKg, unit));
   const [r, setR] = useState(set.reps != null ? String(set.reps) : '');
@@ -43,8 +45,12 @@ export function SetRow({ set, label, unit, mode, highlighted, onSaveDraft, onTog
 
   return (
     <Pressable onLongPress={onLongPress} style={[styles.row, done && { backgroundColor: t.accentDim }]}>
-      <View style={[styles.labelChip, { backgroundColor: set.setType === 'warmup' ? t.backgroundSelected : done ? t.accent : t.accentDim }]}>
-        <Text style={[styles.label, { color: set.setType === 'warmup' ? t.textSecondary : done ? t.accentText : t.accent }]}>{label}</Text>
+      <View style={[styles.labelChip, { backgroundColor: set.setType === 'warmup' ? t.backgroundSelected : pr && done ? t.warning : done ? t.accent : t.accentDim }]}>
+        {pr && done ? (
+          <Ionicons name="trophy" size={15} color={t.accentText} accessibilityLabel="New record" />
+        ) : (
+          <Text style={[styles.label, { color: set.setType === 'warmup' ? t.textSecondary : done ? t.accentText : t.accent }]}>{label}</Text>
+        )}
       </View>
       <View style={styles.cell}>
         <TextInput value={w} onChangeText={setW} onEndEditing={save} keyboardType="decimal-pad" placeholder={unit} placeholderTextColor={t.textSecondary} style={input} selectTextOnFocus inputAccessoryViewID={KEYBOARD_DONE_ID} accessibilityLabel={`${label} weight`} />
