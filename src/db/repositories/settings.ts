@@ -15,6 +15,8 @@ export type AppSettings = {
   restCountdownSound: boolean;
   /** First-run setup finished or skipped */
   onboarded: boolean;
+  /** Save finished workouts to Apple Health (iOS installed builds) */
+  appleHealth: boolean;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -25,6 +27,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   autoAdvanceAfterRest: true,
   restCountdownSound: true,
   onboarded: false,
+  appleHealth: false,
 };
 
 const KEYS = Object.keys(DEFAULT_SETTINGS) as (keyof AppSettings)[];
@@ -38,6 +41,7 @@ const VALID: { [K in keyof AppSettings]: (v: unknown) => v is AppSettings[K] } =
   autoAdvanceAfterRest: (v): v is boolean => typeof v === 'boolean',
   restCountdownSound: (v): v is boolean => typeof v === 'boolean',
   onboarded: (v): v is boolean => typeof v === 'boolean',
+  appleHealth: (v): v is boolean => typeof v === 'boolean',
 };
 
 /**

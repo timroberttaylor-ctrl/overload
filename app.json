@@ -66,6 +66,18 @@
           "enableRemoteNotifications": false,
           "color": "#2EE07A"
         }
+      ],
+      [
+        "expo-widgets",
+        {}
+      ],
+      [
+        "@kingstinct/react-native-healthkit",
+        {
+          "NSHealthShareUsageDescription": "OVRLD does not read your Health data. This permission text is required by Apple for any app that connects to Health.",
+          "NSHealthUpdateUsageDescription": "OVRLD saves your finished workouts to Apple Health so they count toward your activity.",
+          "background": false
+        }
       ]
     ],
     "experiments": {

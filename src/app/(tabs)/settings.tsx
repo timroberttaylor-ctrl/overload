@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Alert, Linking, Platform, View } from 'react-native';
 
 import { RecoveryDataCard } from '@/components/recovery-data-card';
+import { appleHealthAvailable, connectAppleHealth } from '@/integrations/apple-health';
 import { feedbackUrl, PRIVACY_URL, SUPPORT_URL } from '@/constants/links';
 import { Body, Button, Card, Eyebrow, H1, H2, Pill, Row, Screen, Small, Toggle } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
@@ -69,6 +70,26 @@ export default function SettingsScreen() {
       </View>
 
       <RecoveryDataCard />
+
+      {appleHealthAvailable() ? (
+        <Card>
+          <H2>Apple Health</H2>
+          <Row style={{ justifyContent: 'space-between', flexWrap: 'nowrap' }}>
+            <Body style={{ flex: 1 }}>Save finished workouts to Apple Health</Body>
+            <Toggle
+              value={s.appleHealth}
+              onValueChange={(v) => {
+                if (!v) return set({ appleHealth: false });
+                connectAppleHealth().then((ok) => {
+                  if (ok) set({ appleHealth: true });
+                  else Alert.alert('Apple Health', 'OVRLD isn’t allowed to save workouts. Turn it on in the Health app: Profile → Apps → OVRLD.');
+                });
+              }}
+            />
+          </Row>
+          <Small>Each workout is saved as Traditional Strength Training with its start and end time, so it counts toward your Activity rings. OVRLD never reads your Health data.</Small>
+        </Card>
+      ) : null}
 
       <Card>
         <H2>Appearance</H2>

@@ -7,6 +7,7 @@ import { ExerciseDemo } from '@/components/exercise-demo';
 import { RestTimer } from '@/components/rest-timer';
 import { SetRow, type SetValues } from '@/components/set-row';
 import { HistorySheet } from '@/components/history-sheet';
+import { saveWorkoutToHealth } from '@/integrations/apple-health';
 import { NoteSheet } from '@/components/note-sheet';
 import { PrToast, type PrToastData } from '@/components/pr-toast';
 import { SwapSheet } from '@/components/swap-sheet';
@@ -173,6 +174,8 @@ export default function SessionScreen() {
     const go = () =>
       guard('Finish workout', () => {
         finishSession(getDb(), session.id);
+        // Apple Health (opt-in, installed iOS builds). Logged-later workouts have made-up times, so they're skipped.
+        if (settings.appleHealth && !session.isBackfill) saveWorkoutToHealth({ start: new Date(session.startedAt), end: new Date() }).catch(() => {});
         router.replace({
           pathname: '/session/summary',
           params: { id: session.id },

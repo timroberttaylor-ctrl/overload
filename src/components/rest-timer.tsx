@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/hooks/use-theme';
+import { endRestActivity, startRestActivity, updateRestActivity } from '@/integrations/live-activity';
 import { cancelRestAlert, scheduleRestAlert } from '@/integrations/rest-alert';
 
 const TICK = require('../../assets/sounds/rest-tick.wav');
@@ -61,6 +62,21 @@ export function RestTimer({
     const id = scheduleRestAlert(endsAt, nextLabel ? `Up next: ${nextLabel}` : 'Time for your next set.');
     return () => cancelRestAlert(id);
   }, [endsAt, nextLabel]);
+
+  // Lock-screen / Dynamic Island countdown (installed iOS builds): starts with the rest,
+  // follows ±15, and disappears when the rest ends, is skipped or the workout closes.
+  const [startedAt] = useState(() => Date.now());
+  const activity = useRef<ReturnType<typeof startRestActivity>>(null);
+  useEffect(() => {
+    activity.current = startRestActivity({ startedAt, endsAt, next: nextLabel ?? 'Next set' });
+    const handle = activity;
+    return () => endRestActivity(handle.current);
+    // Start once per rest; later changes go through the update below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    updateRestActivity(activity.current, { startedAt, endsAt, next: nextLabel ?? 'Next set' });
+  }, [startedAt, endsAt, nextLabel]);
 
   useEffect(() => {
     if (sound && left >= 1 && left <= 3 && lastBeep.current !== left) {
