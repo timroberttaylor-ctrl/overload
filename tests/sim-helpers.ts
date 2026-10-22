@@ -9,7 +9,7 @@ import { completeRestDay, finishSession, getSessionDetail, logSet, startProgramS
 import { enrolments } from '@/db/schema';
 import type { DB } from '@/db/types';
 
-export const START_WEIGHT: Record<string, number> = { bench_press: 80, back_squat: 100, deadlift: 140, ohp: 50, barbell_row: 70, rdl: 90, front_squat: 70, lateral_raise: 8, db_curl: 12, hammer_curl: 12 };
+export const START_WEIGHT: Record<string, number> = { hack_squat: 100, incline_bench: 60, underhand_pulldown: 55, bench_press: 80, back_squat: 100, deadlift: 140, ohp: 50, barbell_row: 70, rdl: 90, front_squat: 70, lateral_raise: 8, db_curl: 12, hammer_curl: 12 };
 const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.round(x)));
 
 export class Lifter {

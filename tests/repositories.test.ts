@@ -39,7 +39,7 @@ describe('exercises', () => {
 describe('programs and enrolments', () => {
   it('lists templates with days and slots', async () => {
     const { db } = await createTestDb();
-    expect(listTemplates(db)).toHaveLength(10);
+    expect(listTemplates(db)).toHaveLength(13);
     const d = getTemplateDetail(db, 'tpl_upper_lower_4')!;
     expect(d.days).toHaveLength(7);
     expect(d.days[0].slots[0].exercise.id).toBe('bench_press');

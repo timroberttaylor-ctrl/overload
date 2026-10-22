@@ -121,4 +121,11 @@ export const SEED_EXERCISES: SeedExercise[] = [
   e('bike_intervals', 'Bike Intervals', 'conditioning', [], 'machine', 'core', false, 0, 'Hard efforts with easy recovery; log minutes as reps.'),
   e('incline_walk', 'Incline Treadmill Walk', 'conditioning', [], 'machine', 'core', false, 0, 'Brisk walk on a steep incline; log minutes as reps.'),
   e('hip_mobility', 'Hip Mobility Flow', 'mobility', [], 'bodyweight', 'core', false, 0, 'Slow 90/90 switches, deep squat holds and hip openers; log minutes as reps.'),
+  // Added for the OVRLD signature program
+  e('seated_db_calf_raise', 'Seated Dumbbell Calf Raise', 'calves', [], 'dumbbell', 'isolation', false, 2, 'Balls of the feet on a plate or step, dumbbell resting on the knees. Sink into a full stretch, pause, then drive up as high as you can.'),
+  e('six_way_raise', 'Six-Way Dumbbell Raise', 'side delts', ['front delts'], 'dumbbell', 'isolation', false, 1, 'Light dumbbells. Raise to the front, open out to the sides, lift overhead, then reverse the path back down. One full circuit is one rep.'),
+  e('underhand_pulldown', 'Underhand Lat Pulldown', 'lats', ['biceps'], 'cable', 'pull_v', true, 2.5, 'Palms facing you, hands shoulder-width. Lean back slightly, drive the elbows down to your sides and bring the bar to the upper chest.'),
+  e('cross_body_cable_ext', 'Single-Arm Cross-Body Cable Extension', 'triceps', [], 'cable', 'isolation', false, 1.25, 'Cable set high on the opposite side. Pin the elbow, extend down and across the body until the arm is straight, then return slowly.'),
+  e('lying_incline_lateral', 'Incline Side-Lying Lateral Raise', 'side delts', [], 'dumbbell', 'isolation', false, 1, 'Lie on your side on an incline bench. Raise the dumbbell out to just above shoulder height with a soft elbow, then lower slowly.'),
+  e('arnold_press', 'Arnold Press', 'front delts', ['side delts', 'triceps'], 'dumbbell', 'push_v', true, 2, 'Start with palms facing you at chin height. Rotate the palms forward as you press overhead, then reverse the rotation on the way down.'),
 ];

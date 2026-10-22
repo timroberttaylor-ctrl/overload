@@ -11,6 +11,7 @@ import { useTheme } from '@/hooks/use-theme';
 export const METHOD_LABEL = { linear: 'Linear progression', double: 'Double progression', rpe: 'RPE-based', block: 'Block periodisation' } as const;
 
 const LEVEL_ORDER = { beginner: 0, intermediate: 1, advanced: 2 } as const;
+const isSignature = (id: string) => id.startsWith('tpl_ovrld_');
 type Filter = 'all' | 'beginner' | 'intermediate' | 'advanced' | 'short';
 const FILTERS: { key: Filter; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -24,9 +25,14 @@ export default function ProgramsScreen() {
   const t = useTheme();
   const [filter, setFilter] = useState<Filter>('all');
   const [data] = useDbQuery((db) => ({
-    // Your own programs first, then by level and days per week
+    // Your own programs first, then the OVRLD signature programs, then by level and days per week
     templates: [...listTemplates(db)].sort(
-      (a, b) => Number(b.isCustom) - Number(a.isCustom) || LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level] || a.daysPerWeek - b.daysPerWeek || a.name.localeCompare(b.name),
+      (a, b) =>
+        Number(b.isCustom) - Number(a.isCustom) ||
+        Number(isSignature(b.id)) - Number(isSignature(a.id)) ||
+        LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level] ||
+        a.daysPerWeek - b.daysPerWeek ||
+        a.name.localeCompare(b.name),
     ),
     active: getActiveEnrolment(db),
   }));
@@ -52,6 +58,7 @@ export default function ProgramsScreen() {
             <Row style={{ justifyContent: 'space-between' }}>
               <Row gap={6}>
                 {p.isCustom ? <Tag label="Yours" tone="accent" /> : null}
+                {isSignature(p.id) ? <Tag label="Signature" tone="accent" /> : null}
                 <Tag label={p.level} tone={p.level === 'advanced' ? 'warning' : 'neutral'} />
                 <Tag label={METHOD_LABEL[p.method]} />
               </Row>
