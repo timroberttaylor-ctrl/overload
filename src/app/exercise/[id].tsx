@@ -5,6 +5,7 @@ import { Alert, Linking } from 'react-native';
 import { ExerciseDemo } from '@/components/exercise-demo';
 
 import { MiniBars } from '@/components/mini-bars';
+import { ExerciseThumb } from '@/components/exercise-thumb';
 import { Body, Button, Card, Display, Field, H2, Icon, ListRow, Row, Screen, Small, Stat, StatStrip, Tag } from '@/components/ui';
 import { getDb } from '@/db/client';
 import { MEDIA_CREDIT } from '@/db/seed/exercise-media';
@@ -53,7 +54,7 @@ export default function ExerciseScreen() {
 
   return (
     <Screen edges={[]}>
-      <ExerciseDemo exerciseId={ex.id} />
+      <ExerciseDemo exerciseId={ex.id} equipment={ex.equipment} />
       <Row style={{ justifyContent: 'space-between', flexWrap: 'nowrap' }}>
         <Display style={{ flex: 1 }}>{ex.name}</Display>
         {ex.isCustom ? <Button compact variant="secondary" icon="create-outline" title="Edit" onPress={() => router.push({ pathname: '/exercise/edit', params: { id: ex.id } })} /> : null}
@@ -139,6 +140,7 @@ export default function ExerciseScreen() {
           {alts.map((a) => (
             <ListRow
               key={a.id}
+              leading={<ExerciseThumb exerciseId={a.id} equipment={a.equipment} />}
               title={a.name}
               subtitle={`${a.primaryMuscle} · ${a.equipment}`}
               onPress={() =>

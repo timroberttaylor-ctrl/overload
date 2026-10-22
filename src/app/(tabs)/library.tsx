@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { FlatList, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ExerciseThumb } from '@/components/exercise-thumb';
 import { Button, Eyebrow, Field, H1, ListRow, Pill, Row, Small } from '@/components/ui';
 import { listExercises, listMuscles } from '@/db/repositories/exercises';
 import { useDbQuery } from '@/hooks/use-db-query';
@@ -54,7 +55,7 @@ export default function LibraryScreen() {
         }
         renderItem={({ item }) => (
           <ListRow
-            icon={item.isCompound ? 'barbell-outline' : 'fitness-outline'}
+            leading={<ExerciseThumb exerciseId={item.id} equipment={item.equipment} />}
             title={item.name}
             subtitle={`${item.primaryMuscle} · ${item.equipment}${item.isCustom ? ' · custom' : ''}`}
             onPress={() =>

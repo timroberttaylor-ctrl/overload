@@ -74,7 +74,7 @@ export function Card({ children, onPress, style, raised }: { children: ReactNode
 }
 
 /** Tappable list row with an optional leading icon and trailing chevron. */
-export function ListRow({ title, subtitle, icon, onPress, right }: { title: string; subtitle?: string; icon?: IconName; onPress?: () => void; right?: ReactNode }) {
+export function ListRow({ title, subtitle, icon, leading, onPress, right }: { title: string; subtitle?: string; icon?: IconName; leading?: ReactNode; onPress?: () => void; right?: ReactNode }) {
   const t = useTheme();
   return (
     <Pressable
@@ -83,7 +83,8 @@ export function ListRow({ title, subtitle, icon, onPress, right }: { title: stri
       accessibilityRole={onPress ? 'button' : undefined}
       style={({ pressed }) => [styles.listRow, { borderColor: t.border, opacity: pressed ? 0.7 : 1 }]}
     >
-      {icon ? (
+      {leading ?? null}
+      {!leading && icon ? (
         <View style={[styles.listIcon, { backgroundColor: t.backgroundSelected }]}>
           <Icon name={icon} size={18} color={t.accent} />
         </View>

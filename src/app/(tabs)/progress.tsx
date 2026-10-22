@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import { MiniBars } from '@/components/mini-bars';
 import { VolumeCard } from '@/components/volume-card';
+import { ExerciseThumb } from '@/components/exercise-thumb';
 import { Body, Card, Display, Eyebrow, H1, ListRow, Screen, SectionHeader, Small, Stat, StatStrip, Tag } from '@/components/ui';
 import { addDays, isoDate } from '@/core/dates';
 import { formatWeight } from '@/core/units';
@@ -69,7 +70,7 @@ export default function ProgressScreen() {
           lifts.map(({ exercise, state }) => (
             <ListRow
               key={exercise.id}
-              icon="barbell-outline"
+              leading={<ExerciseThumb exerciseId={exercise.id} equipment={exercise.equipment} />}
               title={exercise.name}
               subtitle={`e1RM ${state.e1rmKg ? formatWeight(state.e1rmKg, unit) : '–'} · working ${formatWeight(state.workingWeightKg, unit)}`}
               onPress={() => router.push({ pathname: '/exercise/[id]', params: { id: exercise.id } })}

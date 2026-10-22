@@ -6,6 +6,7 @@ import { getDb } from '@/db/client';
 import { listExercises, listMuscles, type Exercise } from '@/db/repositories/exercises';
 import { useTheme } from '@/hooks/use-theme';
 
+import { ExerciseThumb } from './exercise-thumb';
 import { Field, H2, Icon, ListRow, Pill, Row, Small } from './ui';
 
 /** Full-screen exercise chooser with search and a muscle filter. */
@@ -42,7 +43,7 @@ export function ExercisePicker({ visible, title = 'Add exercise', onPick, onClos
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
           renderItem={({ item }) => (
             <ListRow
-              icon={item.isCompound ? 'barbell-outline' : 'fitness-outline'}
+              leading={<ExerciseThumb exerciseId={item.id} equipment={item.equipment} />}
               title={item.name}
               subtitle={`${item.primaryMuscle} · ${item.equipment}${item.isCustom ? ' · custom' : ''}`}
               onPress={() => {

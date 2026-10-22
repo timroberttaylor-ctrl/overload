@@ -7,6 +7,7 @@ import type { DB } from '@/db/types';
 import { getDb } from '@/db/client';
 import { useTheme } from '@/hooks/use-theme';
 
+import { ExerciseThumb } from './exercise-thumb';
 import { Body, Button, Card, Field, H2, Icon, Pill, Row, Small } from './ui';
 
 function load(db: DB, exerciseId: string, q: string): Exercise[] {
@@ -54,10 +55,15 @@ export function SwapSheet({ visible, exercise, allowProgram, onClose, onPick }: 
                 setQ('');
                 onPick(item.id, scope);
               }}>
-              <Body>{item.name}</Body>
-              <Small>
-                {item.primaryMuscle} · {item.equipment}
-              </Small>
+              <Row gap={12} style={{ flexWrap: 'nowrap' }}>
+                <ExerciseThumb exerciseId={item.id} equipment={item.equipment} />
+                <View style={{ flex: 1 }}>
+                  <Body>{item.name}</Body>
+                  <Small>
+                    {item.primaryMuscle} · {item.equipment}
+                  </Small>
+                </View>
+              </Row>
             </Card>
           )}
         />

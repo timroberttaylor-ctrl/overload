@@ -231,6 +231,7 @@ export default function SessionScreen() {
                   <Row gap={10} style={{ flex: 1, flexWrap: 'nowrap' }}>
                     <ExerciseDemo
                       exerciseId={g.exercise.id}
+                      equipment={g.exercise.equipment}
                       size="sm"
                       onPress={() =>
                         router.push({

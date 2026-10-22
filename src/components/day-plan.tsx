@@ -36,7 +36,7 @@ export function DayPlanList({ slots, onOpenExercise }: { slots: ResolvedSlot[]; 
             {items.length > 1 ? <Small style={{ color: t.accent, fontWeight: '700' }}>Superset</Small> : null}
             {items.map((s) => (
               <Row key={s.slot.id} gap={10} style={{ flexWrap: 'nowrap', alignItems: 'flex-start' }}>
-                <ExerciseDemo exerciseId={s.exercise.id} size="sm" onPress={onOpenExercise ? () => onOpenExercise(s.exercise.id) : undefined} />
+                <ExerciseDemo exerciseId={s.exercise.id} equipment={s.exercise.equipment} size="sm" onPress={onOpenExercise ? () => onOpenExercise(s.exercise.id) : undefined} />
                 <View style={{ flex: 1, gap: 4 }}>
                   <Text style={[styles.name, { color: t.text }]}>{s.exercise.name}</Text>
                   <Small>
