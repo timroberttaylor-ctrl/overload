@@ -134,7 +134,7 @@ export default function SettingsScreen() {
           <Toggle value={s.autoAdvanceAfterRest} onValueChange={(v) => set({ autoAdvanceAfterRest: v })} />
         </Row>
         <Row style={{ justifyContent: 'space-between' }}>
-          <Body style={{ flex: 1 }}>Beep for the last 3 seconds of rest</Body>
+          <Body style={{ flex: 1 }}>Count down the last 5 seconds of rest (the final beep means go)</Body>
           <Toggle value={s.restCountdownSound} onValueChange={(v) => set({ restCountdownSound: v })} />
         </Row>
       </Card>

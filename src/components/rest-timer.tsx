@@ -79,7 +79,8 @@ export function RestTimer({
   }, [startedAt, endsAt, nextLabel]);
 
   useEffect(() => {
-    if (sound && left >= 1 && left <= 3 && lastBeep.current !== left) {
+    // Count in the last 5 seconds (5, 4, 3, 2, 1); the final, longer beep at 0 means go.
+    if (sound && left >= 1 && left <= 5 && lastBeep.current !== left) {
       lastBeep.current = left;
       beep(tick);
     }

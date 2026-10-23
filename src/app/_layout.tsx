@@ -48,8 +48,8 @@ export default function RootLayout() {
           <Body muted>{state.error}</Body>
         </Screen>
       ) : state.ready ? (
-        <Stack screenOptions={{ headerShadowVisible: false, headerTintColor: t.text, headerTitleStyle: { fontWeight: '800' }, headerStyle: { backgroundColor: t.background } }}>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal', headerShadowVisible: false, headerTintColor: t.text, headerTitleStyle: { fontWeight: '800' }, headerStyle: { backgroundColor: t.background } }}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'OVRLD' }} />
           <Stack.Screen name="program/[id]" options={{ title: '' }} />
           <Stack.Screen name="program/edit" options={{ title: 'Program' }} />
           <Stack.Screen name="exercise/[id]" options={{ title: '' }} />

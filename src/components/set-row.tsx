@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native';
 
 import { KEYBOARD_DONE_ID } from '@/components/keyboard-done';
 import { parseWeightInput, weightInputValue, type WeightUnit } from '@/core/units';
 import type { SetLog } from '@/db/repositories/sessions';
 import { useTheme } from '@/hooks/use-theme';
+import { useKeyboardAction } from '@/state/keyboard-action';
 
 export type SetValues = { weightKg: number | null; reps: number | null; rpe: number | null };
 
@@ -29,9 +30,14 @@ const parseRpe = (t: string) => {
   return t.trim() === '' || !Number.isFinite(v) ? null : v;
 };
 
+type Field = 'weight' | 'reps' | 'rpe';
+
 /**
  * One set: weight, reps, optional RPE and a tick. Values are pre-filled with the
  * engine's targets, so a set done as planned is a single tap.
+ *
+ * Keyboard flow: Enter (Android) or the bar above the number pad (iOS) moves
+ * weight → reps → RPE, and Enter on RPE logs the set, same as tapping the tick.
  */
 export function SetRow({ set, label, unit, mode, highlighted, pr, onSaveDraft, onToggle, onLongPress }: Props) {
   const t = useTheme();
@@ -41,6 +47,28 @@ export function SetRow({ set, label, unit, mode, highlighted, pr, onSaveDraft, o
   const values = (): SetValues => ({ weightKg: parseWeightInput(w, unit), reps: parseReps(r), rpe: parseRpe(rpe) });
   const save = () => onSaveDraft(values());
   const done = set.completed;
+
+  const repsRef = useRef<TextInputInstance>(null);
+  const rpeRef = useRef<TextInputInstance>(null);
+  const setAction = useKeyboardAction((k) => k.setAction);
+  const clearAction = useKeyboardAction((k) => k.clearAction);
+  const owner = (f: Field) => `${set.id}:${f}`;
+  const canLog = mode === 'player' && !done && !!onToggle;
+  const logWith = (v: SetValues) => {
+    clearAction(owner('rpe'));
+    onToggle?.(v);
+  };
+  // What "Next" / "Log set" does for the focused field (iOS bar); `v` = the values right now.
+  const arm = (f: Field, v: SetValues) => {
+    if (f === 'weight') setAction({ owner: owner(f), label: 'Next', run: () => repsRef.current?.focus() });
+    else if (f === 'reps') setAction({ owner: owner(f), label: 'Next', run: () => rpeRef.current?.focus() });
+    else if (canLog) setAction({ owner: owner(f), label: 'Log set', run: () => logWith(v) });
+    else clearAction(owner(f));
+  };
+  const blur = (f: Field) => {
+    clearAction(owner(f));
+    save();
+  };
   const input = [styles.input, { color: done ? t.textSecondary : t.text, borderColor: highlighted && !done ? t.accent : 'transparent', backgroundColor: t.backgroundSelected }];
 
   return (
@@ -56,7 +84,11 @@ export function SetRow({ set, label, unit, mode, highlighted, pr, onSaveDraft, o
         <TextInput
           value={w}
           onChangeText={setW}
-          onEndEditing={save}
+          onFocus={() => arm('weight', values())}
+          onEndEditing={() => blur('weight')}
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => repsRef.current?.focus()}
           keyboardType="decimal-pad"
           placeholder={unit}
           placeholderTextColor={t.textSecondary}
@@ -68,9 +100,14 @@ export function SetRow({ set, label, unit, mode, highlighted, pr, onSaveDraft, o
       </View>
       <View style={styles.cellSmall}>
         <TextInput
+          ref={repsRef}
           value={r}
           onChangeText={setR}
-          onEndEditing={save}
+          onFocus={() => arm('reps', values())}
+          onEndEditing={() => blur('reps')}
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => rpeRef.current?.focus()}
           keyboardType="number-pad"
           placeholder={set.toFailure ? 'max' : 'reps'}
           placeholderTextColor={t.textSecondary}
@@ -82,9 +119,17 @@ export function SetRow({ set, label, unit, mode, highlighted, pr, onSaveDraft, o
       </View>
       <View style={styles.cellSmall}>
         <TextInput
+          ref={rpeRef}
           value={rpe}
-          onChangeText={setRpe}
-          onEndEditing={save}
+          onChangeText={(text) => {
+            setRpe(text);
+            arm('rpe', { ...values(), rpe: parseRpe(text) });
+          }}
+          onFocus={() => arm('rpe', values())}
+          onEndEditing={() => blur('rpe')}
+          returnKeyType={canLog ? 'go' : 'done'}
+          submitBehavior="blurAndSubmit"
+          onSubmitEditing={() => (canLog ? logWith(values()) : save())}
           keyboardType="decimal-pad"
           placeholder={set.targetRpe != null ? `@${set.targetRpe}` : 'RPE'}
           placeholderTextColor={t.textSecondary}
