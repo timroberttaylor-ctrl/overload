@@ -42,3 +42,6 @@ example
 /ios
 /android
 src/db/migrations/migrations.js
+
+# Google Play upload key (never commit)
+google-play-key.json
