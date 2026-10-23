@@ -39,7 +39,8 @@ import {
   type SetLog,
 } from '@/db/repositories/sessions';
 import { useDbQuery } from '@/hooks/use-db-query';
-import { useTheme } from '@/hooks/use-theme';
+import { useSchemeName, useTheme } from '@/hooks/use-theme';
+import { groupName, seriesCode, seriesLabels } from '@/constants/colour-codes';
 
 function Elapsed({ since }: { since: number }) {
   const t = useTheme();
@@ -72,6 +73,7 @@ function setLabels(sets: SetLog[]): string[] {
 export default function SessionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const t = useTheme();
+  const scheme = useSchemeName();
   const [data, refresh] = useDbQuery((db) => ({
     detail: getSessionDetail(db, id),
     settings: getSettings(db),
@@ -247,11 +249,21 @@ export default function SessionScreen() {
           </Small>
         </View>
 
-        {groups.map((g) => {
+        {groups.map((g, gi, all) => {
           const labels = setLabels(g.sets);
+          const sc = g.series ? seriesCode(g.series, scheme) : null;
+          const seriesLabel = seriesLabels(all.map((x) => x.series))[gi];
+          const groupSize = g.series ? all.filter((x) => x.series === g.series).length : 1;
+          const firstOfGroup = groupSize > 1 && all.findIndex((x) => x.series === g.series) === gi;
           return (
-            <View key={cardKey(g)} onLayout={(e: LayoutChangeEvent) => cardY.current.set(cardKey(g), e.nativeEvent.layout.y)}>
-              <Card>
+            <View key={cardKey(g)} onLayout={(e: LayoutChangeEvent) => cardY.current.set(cardKey(g), e.nativeEvent.layout.y)} style={{ gap: 6 }}>
+              {firstOfGroup && sc ? (
+                <Row gap={6} style={{ paddingLeft: 4 }}>
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: sc.solid }} />
+                  <Small style={{ color: sc.text, fontWeight: '600' }}>{`${groupName(groupSize)} ${g.series} · ${groupSize} exercises back to back`}</Small>
+                </Row>
+              ) : null}
+              <Card style={sc ? { borderLeftWidth: 4, borderLeftColor: sc.solid } : undefined}>
                 <Row
                   style={{
                     justifyContent: 'space-between',
@@ -278,7 +290,7 @@ export default function SessionScreen() {
                               minWidth: 22,
                               height: 22,
                               borderRadius: 6,
-                              backgroundColor: t.accentDim,
+                              backgroundColor: sc?.tint ?? t.accentDim,
                               alignItems: 'center',
                               justifyContent: 'center',
                               paddingHorizontal: 4,
@@ -286,12 +298,12 @@ export default function SessionScreen() {
                           >
                             <Text
                               style={{
-                                color: t.accent,
+                                color: sc?.text ?? t.accent,
                                 fontWeight: '700',
                                 fontSize: 12,
                               }}
                             >
-                              {g.series}
+                              {seriesLabel}
                             </Text>
                           </View>
                         ) : null}

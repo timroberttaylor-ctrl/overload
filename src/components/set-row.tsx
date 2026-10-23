@@ -5,7 +5,8 @@ import { Pressable, StyleSheet, Text, TextInput, View, type TextInputInstance } 
 import { KEYBOARD_DONE_ID } from '@/components/keyboard-done';
 import { parseWeightInput, weightInputValue, type WeightUnit } from '@/core/units';
 import type { SetLog } from '@/db/repositories/sessions';
-import { useTheme } from '@/hooks/use-theme';
+import { effortBand, effortCode, setCode, type SetKind } from '@/constants/colour-codes';
+import { useSchemeName, useTheme } from '@/hooks/use-theme';
 import { useKeyboardAction } from '@/state/keyboard-action';
 
 export type SetValues = { weightKg: number | null; reps: number | null; rpe: number | null };
@@ -41,6 +42,7 @@ type Field = 'weight' | 'reps' | 'rpe';
  */
 export function SetRow({ set, label, unit, mode, highlighted, pr, onSaveDraft, onToggle, onLongPress }: Props) {
   const t = useTheme();
+  const scheme = useSchemeName();
   const [w, setW] = useState(weightInputValue(set.weightKg, unit));
   const [r, setR] = useState(set.reps != null ? String(set.reps) : '');
   const [rpe, setRpe] = useState(set.rpe != null ? String(set.rpe) : '');
@@ -70,14 +72,25 @@ export function SetRow({ set, label, unit, mode, highlighted, pr, onSaveDraft, o
     save();
   };
   const input = [styles.input, { color: done ? t.textSecondary : t.text, borderColor: highlighted && !done ? t.accent : 'transparent', backgroundColor: t.backgroundSelected }];
+  // Set type: warm-up muted, working green, to-failure rose, a record gold.
+  const kind: SetKind = set.setType === 'warmup' ? 'warmup' : pr && done ? 'pr' : set.toFailure ? 'failure' : 'working';
+  const kc = setCode(kind, scheme);
+  const chipBg = kind === 'warmup' ? t.backgroundSelected : done ? kc.solid : kc.tint;
+  const chipFg = kind === 'warmup' ? t.textSecondary : done ? t.accentText : kc.text;
+  // Effort: the RPE box tints with how hard the set was.
+  const band = effortBand(parseRpe(rpe));
+  const ec = band ? effortCode(band, scheme) : null;
+  const rpeInput = [...input, ec ? { backgroundColor: ec.tint, color: ec.text } : null];
 
   return (
     <Pressable onLongPress={onLongPress} style={[styles.row, done && { backgroundColor: t.accentDim }]}>
-      <View style={[styles.labelChip, { backgroundColor: set.setType === 'warmup' ? t.backgroundSelected : pr && done ? t.warning : done ? t.accent : t.accentDim }]}>
-        {pr && done ? (
-          <Ionicons name="trophy" size={15} color={t.accentText} accessibilityLabel="New record" />
+      <View style={[styles.labelChip, { backgroundColor: chipBg }]}>
+        {kind === 'pr' ? (
+          <Ionicons name="trophy" size={15} color={chipFg} accessibilityLabel="New record" />
         ) : (
-          <Text style={[styles.label, { color: set.setType === 'warmup' ? t.textSecondary : done ? t.accentText : t.accent }]}>{label}</Text>
+          <Text style={[styles.label, { color: chipFg }]} accessibilityLabel={kind === 'failure' ? `${label}, to failure` : undefined}>
+            {kind === 'failure' ? 'F' : label}
+          </Text>
         )}
       </View>
       <View style={styles.cell}>
@@ -133,7 +146,7 @@ export function SetRow({ set, label, unit, mode, highlighted, pr, onSaveDraft, o
           keyboardType="decimal-pad"
           placeholder={set.targetRpe != null ? `@${set.targetRpe}` : 'RPE'}
           placeholderTextColor={t.textSecondary}
-          style={input}
+          style={rpeInput}
           selectTextOnFocus
           inputAccessoryViewID={KEYBOARD_DONE_ID}
           accessibilityLabel={`${label} RPE`}

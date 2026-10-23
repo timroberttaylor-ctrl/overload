@@ -7,10 +7,12 @@ import { ExerciseThumb } from '@/components/exercise-thumb';
 import { Button, Eyebrow, Field, H1, ListRow, Pill, Row, Small } from '@/components/ui';
 import { listExercises, listMuscles } from '@/db/repositories/exercises';
 import { useDbQuery } from '@/hooks/use-db-query';
-import { useTheme } from '@/hooks/use-theme';
+import { muscleCode } from '@/constants/colour-codes';
+import { useSchemeName, useTheme } from '@/hooks/use-theme';
 
 export default function LibraryScreen() {
   const t = useTheme();
+  const scheme = useSchemeName();
   const [search, setSearch] = useState('');
   const [muscle, setMuscle] = useState<string>();
   const [mine, setMine] = useState(false);
@@ -47,7 +49,7 @@ export default function LibraryScreen() {
               />
               <Pill label="My exercises" icon="person-outline" active={mine} onPress={() => setMine((v) => !v)} />
               {(data?.muscles ?? []).map((m) => (
-                <Pill key={m} label={m} active={muscle === m} onPress={() => setMuscle(muscle === m ? undefined : m)} />
+                <Pill key={m} label={m} dot={muscleCode(m, scheme).solid} active={muscle === m} onPress={() => setMuscle(muscle === m ? undefined : m)} />
               ))}
             </ScrollView>
             <Small>{data?.items.length ?? 0} exercises</Small>

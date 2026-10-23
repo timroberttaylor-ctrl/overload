@@ -19,17 +19,13 @@ import { getTemplateDetail } from '@/db/repositories/programs';
 import { completeRestDay, discardSession, getInProgressSession, programWeek, sessionForProgramDay, startProgramSession } from '@/db/repositories/sessions';
 import { getSettings } from '@/db/repositories/settings';
 import { useDbQuery } from '@/hooks/use-db-query';
-import { useTheme } from '@/hooks/use-theme';
+import { PHASE_LABEL, phaseCode, planCode, type PhaseKind } from '@/constants/colour-codes';
+import { useSchemeName, useTheme } from '@/hooks/use-theme';
 
-const PHASE_LABEL: Record<string, string> = {
-  accumulation: 'Build',
-  intensification: 'Intensify',
-  realisation: 'Peak',
-  deload: 'Deload',
-};
 
 export default function TrainScreen() {
   const t = useTheme();
+  const scheme = useSchemeName();
   const today = isoDate();
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [showExercises, setShowExercises] = useState(false);
@@ -198,10 +194,10 @@ export default function TrainScreen() {
               </Pressable>
               <View style={{ alignItems: 'center' }}>
                 <H2>Week {week.week}</H2>
-                <Small>
-                  of {week.totalWeeks}
-                  {plan.phase.kind !== 'accumulation' ? ` · ${PHASE_LABEL[plan.phase.kind]}` : ''}
-                </Small>
+                <Row gap={6}>
+                  <Small>of {week.totalWeeks}</Small>
+                  <Tag label={PHASE_LABEL[plan.phase.kind as PhaseKind] ?? plan.phase.kind} code={phaseCode(plan.phase.kind, scheme)} />
+                </Row>
               </View>
               <Pressable onPress={() => changeWeek(1)} disabled={week.week >= week.totalWeeks} hitSlop={12} accessibilityRole="button" accessibilityLabel="Next week">
                 <Icon name="chevron-forward" size={22} color={week.week >= week.totalWeeks ? t.border : t.text} />
@@ -225,10 +221,10 @@ export default function TrainScreen() {
             </Card>
           ) : null}
           {review.status === 'planned' && week.week === review.planWeek && review.plan.row.accepted && review.plan.decision.kind !== 'as_written' ? (
-            <Card onPress={() => router.push('/week-review')}>
+            <Card onPress={() => router.push('/week-review')} style={{ borderLeftWidth: 4, borderLeftColor: planCode(review.plan.decision.kind, scheme).solid }}>
               <Row style={{ justifyContent: 'space-between', flexWrap: 'nowrap' }}>
                 <View style={{ flex: 1, gap: 2 }}>
-                  <Eyebrow color={t.accent}>This week</Eyebrow>
+                  <Eyebrow color={planCode(review.plan.decision.kind, scheme).text}>This week</Eyebrow>
                   <H2>{PLAN_LABEL[review.plan.decision.kind]}</H2>
                   <Small>{changeSummary(review.plan.decision).join(' · ')}</Small>
                 </View>

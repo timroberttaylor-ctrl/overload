@@ -4,13 +4,14 @@ import { Alert, Pressable, Text, View } from 'react-native';
 
 import { Body, Button, Card, Eyebrow, H1, H2, Icon, Row, Screen, Small, Tag } from '@/components/ui';
 import { isoDate } from '@/core/dates';
-import { JOINT_REGIONS, PLAN_LABEL, REGION_LABEL, adherence, changeSummary, hitRate, type CheckIn, type JointRegion, type PlanKind } from '@/core/planner';
+import { JOINT_REGIONS, PLAN_LABEL, REGION_LABEL, adherence, changeSummary, hitRate, type CheckIn, type JointRegion } from '@/core/planner';
 import { getDb } from '@/db/client';
 import { getActiveEnrolment } from '@/db/repositories/enrolments';
 import { clearWeekPlan, getCheckIn, getWeekPlan, recommendWeek, reviewState, saveCheckIn, saveWeekPlan, weekNotes } from '@/db/repositories/planner';
 import { VolumeCard } from '@/components/volume-card';
 import { useDbQuery } from '@/hooks/use-db-query';
-import { useTheme } from '@/hooks/use-theme';
+import { planCode } from '@/constants/colour-codes';
+import { useSchemeName, useTheme } from '@/hooks/use-theme';
 
 const SCALES: { key: keyof Omit<CheckIn, 'jointPainRegion'>; title: string; low: string; high: string }[] = [
   { key: 'fatigue', title: 'Overall fatigue', low: 'Fresh', high: 'Exhausted' },
@@ -20,10 +21,6 @@ const SCALES: { key: keyof Omit<CheckIn, 'jointPainRegion'>; title: string; low:
 ];
 
 const DEFAULT_CHECKIN: CheckIn = { fatigue: 2, soreness: 2, motivation: 3, jointPain: 1, jointPainRegion: null };
-
-function kindTone(kind: PlanKind): 'accent' | 'warning' | 'neutral' {
-  return kind === 'push' ? 'accent' : kind === 'reduce' || kind === 'deload' ? 'warning' : 'neutral';
-}
 
 function Scale({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   const t = useTheme();
@@ -64,6 +61,7 @@ function Bullets({ items, icon }: { items: string[]; icon: 'checkmark-circle' | 
 
 export default function WeekReviewScreen() {
   const t = useTheme();
+  const scheme = useSchemeName();
   const today = isoDate();
   const [data, refresh] = useDbQuery((db) => {
     const enrolment = getActiveEnrolment(db);
@@ -250,7 +248,7 @@ export default function WeekReviewScreen() {
       <Card raised style={{ borderColor: t.accent, borderWidth: changes ? 1 : 0 }}>
         <Row style={{ justifyContent: 'space-between' }}>
           <Eyebrow color={t.accent}>Recommended for week {planWeek}</Eyebrow>
-          <Tag label={PLAN_LABEL[rec.decision.kind]} tone={kindTone(rec.decision.kind)} />
+          <Tag label={PLAN_LABEL[rec.decision.kind]} code={planCode(rec.decision.kind, scheme)} />
         </Row>
         <Bullets items={changeSummary(rec.decision)} icon="checkmark-circle" />
         <View style={{ height: 1, backgroundColor: t.border }} />

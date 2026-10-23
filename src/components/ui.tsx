@@ -142,29 +142,33 @@ export function Button({
   );
 }
 
-export function Pill({ label, active, onPress, icon }: { label: string; active?: boolean; onPress?: () => void; icon?: IconName }) {
+export function Pill({ label, active, onPress, icon, dot }: { label: string; active?: boolean; onPress?: () => void; icon?: IconName; dot?: string }) {
   const t = useTheme();
+  const bg = active ? (dot ?? t.accent) : t.backgroundSelected;
   return (
     <Pressable
       onPress={onPress}
       disabled={!onPress}
       accessibilityRole={onPress ? 'button' : undefined}
       accessibilityState={{ selected: !!active }}
-      style={[styles.pill, { backgroundColor: active ? t.accent : t.backgroundSelected }]}
+      style={[styles.pill, { backgroundColor: bg }]}
     >
       {icon ? <Icon name={icon} size={13} color={active ? t.accentText : t.textSecondary} /> : null}
+      {dot && !active ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: dot }} /> : null}
       <Text style={[styles.pillText, { color: active ? t.accentText : t.text }]}>{label}</Text>
     </Pressable>
   );
 }
 
-/** Small outlined tag, e.g. muscle groups or a level. */
-export function Tag({ label, tone = 'neutral' }: { label: string; tone?: 'neutral' | 'accent' | 'warning' }) {
+/** Small outlined tag, e.g. muscle groups or a level. `code` gives it a colour-code instead of a tone. */
+export function Tag({ label, tone = 'neutral', code }: { label: string; tone?: 'neutral' | 'accent' | 'warning'; code?: { solid: string; text: string; tint: string } }) {
   const t = useTheme();
   const color = tone === 'accent' ? t.accent : tone === 'warning' ? t.warning : t.textSecondary;
+  const border = code ? code.solid + '66' : color + '66';
+  const bg = code ? code.tint : tone === 'neutral' ? 'transparent' : color + '1A';
   return (
-    <View style={[styles.tag, { borderColor: color + '66', backgroundColor: tone === 'neutral' ? 'transparent' : color + '1A' }]}>
-      <Text style={[styles.tagText, { color }]}>{label}</Text>
+    <View style={[styles.tag, { borderColor: border, backgroundColor: bg }]}>
+      <Text style={[styles.tagText, { color: code ? code.text : color }]}>{label}</Text>
     </View>
   );
 }

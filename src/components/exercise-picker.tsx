@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getDb } from '@/db/client';
 import { listExercises, listMuscles, type Exercise } from '@/db/repositories/exercises';
-import { useTheme } from '@/hooks/use-theme';
+import { muscleCode } from '@/constants/colour-codes';
+import { useSchemeName, useTheme } from '@/hooks/use-theme';
 
 import { ExerciseThumb } from './exercise-thumb';
 import { Field, H2, Icon, ListRow, Pill, Row, Small } from './ui';
@@ -12,6 +13,7 @@ import { Field, H2, Icon, ListRow, Pill, Row, Small } from './ui';
 /** Full-screen exercise chooser with search and a muscle filter. */
 export function ExercisePicker({ visible, title = 'Add exercise', onPick, onClose }: { visible: boolean; title?: string; onPick: (ex: Exercise) => void; onClose: () => void }) {
   const t = useTheme();
+  const scheme = useSchemeName();
   const [search, setSearch] = useState('');
   const [muscle, setMuscle] = useState<string>();
   const items = visible ? listExercises(getDb(), { search, muscle }) : [];
@@ -31,7 +33,7 @@ export function ExercisePicker({ visible, title = 'Add exercise', onPick, onClos
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
             <Pill label="All" active={!muscle} onPress={() => setMuscle(undefined)} />
             {muscles.map((m) => (
-              <Pill key={m} label={m} active={muscle === m} onPress={() => setMuscle(muscle === m ? undefined : m)} />
+              <Pill key={m} label={m} dot={muscleCode(m, scheme).solid} active={muscle === m} onPress={() => setMuscle(muscle === m ? undefined : m)} />
             ))}
           </ScrollView>
           <Small>{items.length} exercises</Small>

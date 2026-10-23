@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 
 import { DayPlanList } from '@/components/day-plan';
 import { Body, Button, Card, Display, Eyebrow, H2, Icon, Row, Screen, Small, Stat, StatStrip, Tag } from '@/components/ui';
@@ -11,12 +11,13 @@ import { getActiveEnrolment, startProgram } from '@/db/repositories/enrolments';
 import { fitScheme, readScheme, schemeForWeek } from '@/core/scheme';
 import { getTemplateDetail, repsForPhase, setsForPhase } from '@/db/repositories/programs';
 import { useDbQuery } from '@/hooks/use-db-query';
-import { useTheme } from '@/hooks/use-theme';
+import { PHASE_LABEL, phaseCode } from '@/constants/colour-codes';
+import { useSchemeName, useTheme } from '@/hooks/use-theme';
 
-const PHASE_LABEL: Record<string, string> = { accumulation: 'Build', intensification: 'Intensify', realisation: 'Peak', deload: 'Deload' };
 
 export default function ProgramDetailScreen() {
   const t = useTheme();
+  const scheme = useSchemeName();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [open, setOpen] = useState<number | null>(null);
   const [data] = useDbQuery((db) => ({ detail: getTemplateDetail(db, id), active: getActiveEnrolment(db) }));
@@ -77,11 +78,11 @@ export default function ProgramDetailScreen() {
                 style={{
                   height: 8,
                   borderRadius: 4,
-                  backgroundColor: p.kind === 'deload' ? t.backgroundSelected : p.kind === 'realisation' ? t.danger : p.kind === 'intensification' ? t.warning : t.accent,
+                  backgroundColor: phaseCode(p.kind, scheme).solid,
                 }}
               />
               <Small>
-                {PHASE_LABEL[p.kind]} · wk {p.weekFrom}
+                <Text style={{ color: phaseCode(p.kind, scheme).text, fontWeight: '600' }}>{PHASE_LABEL[p.kind]}</Text> · wk {p.weekFrom}
                 {p.weekTo !== p.weekFrom ? `–${p.weekTo}` : ''}
               </Small>
             </View>

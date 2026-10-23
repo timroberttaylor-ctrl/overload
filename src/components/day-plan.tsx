@@ -1,8 +1,9 @@
 import { StyleSheet, Text, View } from 'react-native';
 
+import { groupName, seriesCode, seriesLabels } from '@/constants/colour-codes';
 import { describeEntries } from '@/core/scheme';
 import type { ResolvedSlot } from '@/db/repositories/enrolments';
-import { useTheme } from '@/hooks/use-theme';
+import { useSchemeName, useTheme } from '@/hooks/use-theme';
 
 import { ExerciseDemo } from './exercise-demo';
 import { TempoChip } from './tempo-chip';
@@ -21,25 +22,34 @@ function shownRpe(s: ResolvedSlot): number | null {
 /** Exercises grouped by series letter (A, B, …); a shared letter is a superset. */
 export function DayPlanList({ slots, onOpenExercise }: { slots: ResolvedSlot[]; onOpenExercise?: (exerciseId: string) => void }) {
   const t = useTheme();
+  const scheme = useSchemeName();
   const groups = new Map<string, ResolvedSlot[]>();
   for (const s of slots) groups.set(s.slot.series, [...(groups.get(s.slot.series) ?? []), s]);
+  const seriesLabel = seriesLabels(slots.map((x) => x.slot.series));
+  const labels = new Map(slots.map((s, i) => [s.slot.id, seriesLabel[i]]));
   return (
     <View style={{ gap: 14 }}>
-      {[...groups.entries()].map(([series, items]) => (
+      {[...groups.entries()].map(([series, items]) => {
+        const c = seriesCode(series, scheme);
+        const kind = groupName(items.length);
+        return (
         <View key={series} style={styles.group}>
           <View style={styles.rail}>
-            <View style={[styles.badge, { backgroundColor: t.accentDim }]}>
-              <Text style={[styles.badgeText, { color: t.accent }]}>{series}</Text>
+            <View style={[styles.badge, { backgroundColor: c.tint }]}>
+              <Text style={[styles.badgeText, { color: c.text }]}>{series}</Text>
             </View>
-            {items.length > 1 ? <View style={[styles.line, { backgroundColor: t.accentDim }]} /> : null}
+            {items.length > 1 ? <View style={[styles.line, { backgroundColor: c.solid }]} /> : null}
           </View>
           <View style={{ flex: 1, gap: 10 }}>
-            {items.length > 1 ? <Small style={{ color: t.accent, fontWeight: '700' }}>Superset</Small> : null}
+            {kind ? <Small style={{ color: c.text, fontWeight: '600' }}>{kind}</Small> : null}
             {items.map((s) => (
               <Row key={s.slot.id} gap={10} style={{ flexWrap: 'nowrap', alignItems: 'flex-start' }}>
                 <ExerciseDemo exerciseId={s.exercise.id} equipment={s.exercise.equipment} size="sm" onPress={onOpenExercise ? () => onOpenExercise(s.exercise.id) : undefined} />
                 <View style={{ flex: 1, gap: 4 }}>
-                  <Text style={[styles.name, { color: t.text }]}>{s.exercise.name}</Text>
+                  <Text style={[styles.name, { color: t.text }]}>
+                    {items.length > 1 ? <Text style={{ color: c.text }}>{`${labels.get(s.slot.id)}  `}</Text> : null}
+                    {s.exercise.name}
+                  </Text>
                   <Small>
                     {s.repTargets ? describeEntries(s.repTargets.map((r) => r ?? 'F')) : `${s.workingSets} × ${repRange(s.slot.repMin, s.slot.repMax)}`}
                     {s.exercise.pattern === 'carry' ? ' m' : ''}
@@ -55,7 +65,8 @@ export function DayPlanList({ slots, onOpenExercise }: { slots: ResolvedSlot[]; 
             ))}
           </View>
         </View>
-      ))}
+        );
+      })}
     </View>
   );
 }
@@ -65,6 +76,6 @@ const styles = StyleSheet.create({
   rail: { alignItems: 'center', width: 28 },
   badge: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   badgeText: { fontWeight: '700', fontSize: 14 },
-  line: { width: 2, flex: 1, marginTop: 4, borderRadius: 1 },
+  line: { width: 3, flex: 1, marginTop: 4, borderRadius: 1 },
   name: { fontSize: 15, fontWeight: '700' },
 });

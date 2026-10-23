@@ -1,7 +1,8 @@
 import { Text, View } from 'react-native';
 
 import { GROUP_LABEL, GROUP_TARGET, MUSCLE_GROUPS, groupStatus, volumeHint, type Volume } from '@/core/volume';
-import { useTheme } from '@/hooks/use-theme';
+import { muscleCode } from '@/constants/colour-codes';
+import { useSchemeName, useTheme } from '@/hooks/use-theme';
 
 import { Card, H2, Icon, Row, Small } from './ui';
 
@@ -11,6 +12,7 @@ import { Card, H2, Icon, Row, Small } from './ui';
  */
 export function VolumeCard({ title, done, planned, footnote }: { title: string; done: Volume; planned?: Volume; footnote?: string }) {
   const t = useTheme();
+  const scheme = useSchemeName();
   const groups = MUSCLE_GROUPS.filter((g) => done[g] > 0 || (planned?.[g] ?? 0) > 0);
   if (!groups.length) return null;
   const scaleMax = Math.max(22, ...groups.map((g) => Math.max(done[g], planned?.[g] ?? 0)));
@@ -27,7 +29,8 @@ export function VolumeCard({ title, done, planned, footnote }: { title: string; 
         {groups.map((g) => {
           const target = GROUP_TARGET[g];
           const status = groupStatus(g, basis[g]);
-          const color = status === 'low' ? t.warning : t.accent;
+          const mc = muscleCode(g, scheme);
+          const color = mc.solid;
           return (
             <View
               key={g}
@@ -36,7 +39,11 @@ export function VolumeCard({ title, done, planned, footnote }: { title: string; 
               accessibilityLabel={`${GROUP_LABEL[g]}: ${done[g]} sets done${planned ? ` of ${planned[g]} planned` : ''}; usual range ${target.min} to ${target.max}`}
             >
               <Row style={{ justifyContent: 'space-between' }}>
-                <Text style={{ color: t.text, fontWeight: '700', fontSize: 13 }}>{GROUP_LABEL[g]}</Text>
+                <Row gap={6}>
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: mc.solid }} />
+                  <Text style={{ color: t.text, fontWeight: '600', fontSize: 13 }}>{GROUP_LABEL[g]}</Text>
+                  {status === 'low' ? <Icon name="alert-circle" size={13} color={t.warning} /> : null}
+                </Row>
                 <Text style={{ color: status === 'low' ? t.warning : t.textSecondary, fontSize: 12, fontVariant: ['tabular-nums'] }}>
                   {done[g]}
                   {planned ? ` / ${planned[g]}` : ''} sets
@@ -44,7 +51,7 @@ export function VolumeCard({ title, done, planned, footnote }: { title: string; 
               </Row>
               <View style={{ height: 10, borderRadius: 5, backgroundColor: t.backgroundSelected, overflow: 'hidden' }}>
                 {/* usual weekly range */}
-                <View style={{ position: 'absolute', left: pct(target.min), width: `${((target.max - target.min) / scaleMax) * 100}%`, top: 0, bottom: 0, backgroundColor: t.accent + '22' }} />
+                <View style={{ position: 'absolute', left: pct(target.min), width: `${((target.max - target.min) / scaleMax) * 100}%`, top: 0, bottom: 0, backgroundColor: t.text + '14' }} />
                 {/* done */}
                 <View style={{ width: pct(done[g]), height: '100%', borderRadius: 5, backgroundColor: color }} />
                 {/* planned */}

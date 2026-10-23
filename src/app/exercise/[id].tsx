@@ -9,7 +9,8 @@ import { ExerciseThumb } from '@/components/exercise-thumb';
 import { Body, Button, Card, Display, Field, H2, Icon, ListRow, Row, Screen, Small, Stat, StatStrip, Tag } from '@/components/ui';
 import { getDb } from '@/db/client';
 import { MEDIA_CREDIT } from '@/db/seed/exercise-media';
-import { useTheme } from '@/hooks/use-theme';
+import { muscleCode } from '@/constants/colour-codes';
+import { useSchemeName, useTheme } from '@/hooks/use-theme';
 import { isSafeWebUrl } from '@/core/safe-url';
 import { formatWeight } from '@/core/units';
 import { getExercise, setExerciseMediaUrl, suggestAlternatives } from '@/db/repositories/exercises';
@@ -29,6 +30,7 @@ function openMediaLink(url: string | null) {
 
 export default function ExerciseScreen() {
   const t = useTheme();
+  const scheme = useSchemeName();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [editingLink, setEditingLink] = useState<string | null>(null);
   const [data, refresh] = useDbQuery((db) => ({
@@ -60,7 +62,7 @@ export default function ExerciseScreen() {
         {ex.isCustom ? <Button compact variant="secondary" icon="create-outline" title="Edit" onPress={() => router.push({ pathname: '/exercise/edit', params: { id: ex.id } })} /> : null}
       </Row>
       <Row gap={6}>
-        <Tag label={ex.primaryMuscle} tone="accent" />
+        <Tag label={ex.primaryMuscle} code={muscleCode(ex.primaryMuscle, scheme)} />
         {secondary.map((m) => (
           <Tag key={m} label={m} />
         ))}
