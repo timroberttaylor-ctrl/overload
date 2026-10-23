@@ -4,6 +4,7 @@ import { Alert, Linking, Platform, View } from 'react-native';
 
 import { RecoveryDataCard } from '@/components/recovery-data-card';
 import { appleHealthAvailable, connectAppleHealth } from '@/integrations/apple-health';
+import { checkAndApplyUpdate, updateInfo } from '@/integrations/app-updates';
 import { feedbackUrl, PRIVACY_URL, SUPPORT_URL } from '@/constants/links';
 import { Body, Button, Card, Eyebrow, H1, H2, Pill, Row, Screen, Small, Toggle } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
@@ -166,7 +167,23 @@ export default function SettingsScreen() {
         />
       </Card>
 
-      <Small>OVRLD {Constants.expoConfig?.version ?? ''} · your data stays on this phone</Small>
+      {updateInfo().enabled ? (
+        <Button
+          compact
+          variant="ghost"
+          icon="cloud-download-outline"
+          title="Check for updates"
+          onPress={() =>
+            checkAndApplyUpdate().then((r) => {
+              if (r === 'none') Alert.alert('Up to date', 'You have the latest version of OVRLD.');
+              else if (r === 'error') Alert.alert('Could not check for updates', 'Check your connection and try again.');
+            })
+          }
+        />
+      ) : null}
+      <Small>
+        OVRLD {Constants.expoConfig?.version ?? ''} · {updateInfo().label} · your data stays on this phone
+      </Small>
       <Small>{MEDIA_CREDIT}</Small>
     </Screen>
   );

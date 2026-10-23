@@ -111,6 +111,14 @@
         "projectId": "4cb0d7c4-2677-4b81-a7bd-478709f1e428"
       }
     },
-    "owner": "drtima"
+    "owner": "drtima",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/4cb0d7c4-2677-4b81-a7bd-478709f1e428",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    }
   }
 }
