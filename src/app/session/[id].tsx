@@ -287,7 +287,7 @@ export default function SessionScreen() {
                             <Text
                               style={{
                                 color: t.accent,
-                                fontWeight: '900',
+                                fontWeight: '700',
                                 fontSize: 12,
                               }}
                             >

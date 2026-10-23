@@ -52,7 +52,7 @@ export function WeekStrip({ days, selected, onSelect }: { days: WeekDay[]; selec
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between' },
   cell: { alignItems: 'center', gap: 6, flex: 1 },
-  label: { fontSize: 11, fontWeight: '800', letterSpacing: 0.6 },
+  label: { fontSize: 11, fontWeight: '600', letterSpacing: 0.6 },
   circle: { width: 34, height: 34, borderRadius: 17, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   dot: { width: 6, height: 6, borderRadius: 3 },
   underline: { width: 16, height: 3, borderRadius: 2 },

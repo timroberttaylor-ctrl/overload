@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
   },
-  time: { fontSize: 20, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  time: { fontSize: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
   actions: { flexDirection: 'row', gap: 8 },
   btn: {
     borderWidth: 1,

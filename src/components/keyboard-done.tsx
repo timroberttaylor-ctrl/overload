@@ -24,7 +24,7 @@ export function KeyboardDoneBar() {
         </Pressable>
         {action ? (
           <Pressable onPress={action.run} accessibilityRole="button" accessibilityLabel={action.label} hitSlop={8} style={[styles.primary, { backgroundColor: t.accent }]}>
-            <Text style={{ color: t.accentText, fontWeight: '800', fontSize: 16 }}>{action.label}</Text>
+            <Text style={{ color: t.accentText, fontWeight: '600', fontSize: 16 }}>{action.label}</Text>
           </Pressable>
         ) : null}
       </View>

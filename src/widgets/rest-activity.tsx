@@ -30,14 +30,14 @@ const RestActivity = (props: RestActivityProps, environment: LiveActivityEnviron
           <Text modifiers={[font({ size: 15, weight: 'semibold' })]}>{props.next}</Text>
         </VStack>
         <Spacer />
-        <Text timerInterval={range} countsDown modifiers={[font({ size: 36, weight: 'heavy' }), monospacedDigit(), foregroundStyle(green)]} />
+        <Text timerInterval={range} countsDown modifiers={[font({ size: 36, weight: 'bold' }), monospacedDigit(), foregroundStyle(green)]} />
       </HStack>
     ),
     compactLeading: <Image systemName="timer" color={green} />,
     compactTrailing: <Text timerInterval={range} countsDown modifiers={[monospacedDigit(), foregroundStyle(green)]} />,
     minimal: <Image systemName="timer" color={green} />,
     expandedLeading: <Image systemName="timer" color={green} />,
-    expandedTrailing: <Text timerInterval={range} countsDown modifiers={[font({ size: 28, weight: 'heavy' }), monospacedDigit(), foregroundStyle(green)]} />,
+    expandedTrailing: <Text timerInterval={range} countsDown modifiers={[font({ size: 28, weight: 'bold' }), monospacedDigit(), foregroundStyle(green)]} />,
     expandedBottom: <Text modifiers={[font({ size: 15, weight: 'semibold' })]}>{`Up next: ${props.next}`}</Text>,
   };
 };

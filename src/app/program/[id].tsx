@@ -130,7 +130,7 @@ export default function ProgramDetailScreen() {
             <Row style={{ justifyContent: 'space-between', flexWrap: 'nowrap' }}>
               <Row gap={12} style={{ flex: 1, flexWrap: 'nowrap' }}>
                 <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: day.isRest ? t.backgroundSelected : t.accentDim, alignItems: 'center', justifyContent: 'center' }}>
-                  {day.isRest ? <Icon name="moon" size={16} color={t.textSecondary} /> : <Small style={{ color: t.accent, fontWeight: '900' }}>D{day.dayIndex + 1}</Small>}
+                  {day.isRest ? <Icon name="moon" size={16} color={t.textSecondary} /> : <Small style={{ color: t.accent, fontWeight: '700' }}>D{day.dayIndex + 1}</Small>}
                 </View>
                 <View style={{ flex: 1 }}>
                   <H2>{day.isRest ? 'Rest' : day.name}</H2>

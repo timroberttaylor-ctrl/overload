@@ -23,7 +23,7 @@ export function TempoChip({ tempo }: { tempo: string | null | undefined }) {
       hitSlop={6}
       style={{ flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', borderRadius: 999, paddingVertical: 3, paddingHorizontal: 9, backgroundColor: t.accentDim }}>
       <Icon name="timer-outline" size={13} color={t.accent} />
-      <Text style={{ color: t.accent, fontWeight: '800', fontSize: 12, fontVariant: ['tabular-nums'] }}>{tempo}</Text>
+      <Text style={{ color: t.accent, fontWeight: '600', fontSize: 12, fontVariant: ['tabular-nums'] }}>{tempo}</Text>
     </Pressable>
   );
 }

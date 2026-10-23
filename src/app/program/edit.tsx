@@ -62,7 +62,7 @@ function Stepper({
       <Small>{label}</Small>
       <Row gap={6} style={{ flexWrap: 'nowrap' }}>
         {btn(-step, 'remove')}
-        <Text style={{ color: t.text, fontWeight: '800', fontSize: 16, minWidth: 34, textAlign: 'center', fontVariant: ['tabular-nums'] }}>
+        <Text style={{ color: t.text, fontWeight: '600', fontSize: 16, minWidth: 34, textAlign: 'center', fontVariant: ['tabular-nums'] }}>
           {value}
           {suffix}
         </Text>
@@ -157,7 +157,7 @@ export default function ProgramBuilderScreen() {
           title: id ? 'Edit program' : 'New program',
           headerRight: () => (
             <Pressable onPress={save} accessibilityRole="button" hitSlop={10}>
-              <Text style={{ color: t.accent, fontWeight: '800', fontSize: 16 }}>Save</Text>
+              <Text style={{ color: t.accent, fontWeight: '600', fontSize: 16 }}>Save</Text>
             </Pressable>
           ),
         }}
@@ -204,7 +204,7 @@ export default function ProgramBuilderScreen() {
         return (
           <Card key={day.k} raised={!day.isRest}>
             <Row style={{ justifyContent: 'space-between', flexWrap: 'nowrap' }}>
-              <Text style={{ color: t.accent, fontWeight: '800', fontSize: 12, letterSpacing: 1 }}>DAY {di + 1}</Text>
+              <Text style={{ color: t.accent, fontWeight: '600', fontSize: 12, letterSpacing: 1 }}>DAY {di + 1}</Text>
               <Row gap={2} style={{ flexWrap: 'nowrap' }}>
                 <IconBtn icon="arrow-up" label={`Move day ${di + 1} up`} disabled={di === 0} onPress={() => setDays((d) => move(d, di, -1))} />
                 <IconBtn icon="arrow-down" label={`Move day ${di + 1} down`} disabled={di === draft.days.length - 1} onPress={() => setDays((d) => move(d, di, 1))} />
@@ -228,7 +228,7 @@ export default function ProgramBuilderScreen() {
                       <Pressable onPress={() => setOpenSlot(open ? null : s.k)} accessibilityRole="button" accessibilityState={{ expanded: open }}>
                         <Row gap={10} style={{ flexWrap: 'nowrap' }}>
                           <View style={{ width: 26, height: 26, borderRadius: 7, backgroundColor: t.accentDim, alignItems: 'center', justifyContent: 'center' }}>
-                            <Text style={{ color: t.accent, fontWeight: '900' }}>{letters[si]}</Text>
+                            <Text style={{ color: t.accent, fontWeight: '700' }}>{letters[si]}</Text>
                           </View>
                           <View style={{ flex: 1 }}>
                             <Text style={{ color: t.text, fontWeight: '700' }}>{ex?.name ?? 'Missing exercise'}</Text>

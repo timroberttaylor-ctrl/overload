@@ -40,7 +40,7 @@ function Scale({ value, onChange }: { value: number; onChange: (v: number) => vo
             accessibilityLabel={String(n)}
             style={{ flex: 1, height: 44, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? t.accent : t.backgroundSelected }}
           >
-            <Text style={{ color: on ? t.accentText : t.text, fontWeight: '800', fontSize: 16 }}>{n}</Text>
+            <Text style={{ color: on ? t.accentText : t.text, fontWeight: '600', fontSize: 16 }}>{n}</Text>
           </Pressable>
         );
       })}

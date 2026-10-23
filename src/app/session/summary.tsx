@@ -65,7 +65,7 @@ export default function SummaryScreen() {
             <View key={i} style={{ gap: 2, paddingVertical: 4 }}>
               <Row style={{ justifyContent: 'space-between', flexWrap: 'nowrap' }}>
                 <Body style={{ fontWeight: '700', flex: 1 }}>{n.exerciseName}</Body>
-                <Body style={{ color: t.accent, fontWeight: '800' }}>{n.target.weightKg != null ? `${fmt(n.target.weightKg)} × ${n.target.reps.join('/')}` : 'choose'}</Body>
+                <Body style={{ color: t.accent, fontWeight: '600' }}>{n.target.weightKg != null ? `${fmt(n.target.weightKg)} × ${n.target.reps.join('/')}` : 'choose'}</Body>
               </Row>
               <Small>{n.target.reason}</Small>
             </View>

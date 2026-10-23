@@ -47,6 +47,6 @@ export function PrToast({ toast, onHide }: { toast: PrToastData | null; onHide: 
 const styles = StyleSheet.create({
   wrap: { position: 'absolute', left: 12, right: 12, zIndex: 20 },
   card: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
-  title: { color: '#1A1300', fontWeight: '900', fontSize: 16 },
+  title: { color: '#1A1300', fontWeight: '700', fontSize: 16 },
   detail: { color: '#1A1300', fontWeight: '600', fontSize: 13, opacity: 0.85 },
 });

@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
   group: { flexDirection: 'row', gap: 12 },
   rail: { alignItems: 'center', width: 28 },
   badge: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  badgeText: { fontWeight: '900', fontSize: 14 },
+  badgeText: { fontWeight: '700', fontSize: 14 },
   line: { width: 2, flex: 1, marginTop: 4, borderRadius: 1 },
   name: { fontSize: 15, fontWeight: '700' },
 });

@@ -156,7 +156,7 @@ export function SetRow({ set, label, unit, mode, highlighted, pr, onSaveDraft, o
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 5, paddingHorizontal: 4, borderRadius: 12 },
   labelChip: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  label: { fontSize: 13, fontWeight: '900', textAlign: 'center' },
+  label: { fontSize: 13, fontWeight: '700', textAlign: 'center' },
   cell: { flex: 1.4 },
   cellSmall: { flex: 1 },
   input: { borderWidth: 1.5, borderRadius: 10, paddingVertical: 9, paddingHorizontal: 8, fontSize: 17, fontWeight: '700', textAlign: 'center', fontVariant: ['tabular-nums'] },

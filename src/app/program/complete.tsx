@@ -74,7 +74,7 @@ export default function ProgramCompleteScreen() {
               <Small>
                 {formatWeight(l.startE1rmKg, unit)} → {formatWeight(l.endE1rmKg, unit)}
               </Small>
-              <Body style={{ width: 64, textAlign: 'right', fontWeight: '800', color: l.changePct > 0 ? t.accent : t.textSecondary }}>
+              <Body style={{ width: 64, textAlign: 'right', fontWeight: '600', color: l.changePct > 0 ? t.accent : t.textSecondary }}>
                 {l.changePct > 0 ? '+' : ''}
                 {Math.round(l.changePct)}%
               </Body>
