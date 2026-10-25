@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Linking, Platform, View } from 'react-native';
 
@@ -20,6 +21,7 @@ const PLATE_STEPS = [1, 1.25, 2.5, 5];
 export default function SettingsScreen() {
   const t = useTheme();
   const setAppearance = useAppearance((a) => a.setAppearance);
+  const setLevelMode = useAppearance((a) => a.setLevelMode);
   const [s, refresh] = useDbQuery((db) => getSettings(db));
   const [busy, setBusy] = useState(false);
   if (!s) return null;
@@ -107,6 +109,21 @@ export default function SettingsScreen() {
             />
           ))}
         </Row>
+        {s.levelMode ? <Small>Level Up mode uses its own dark theme. Your choice here applies when it’s off.</Small> : null}
+      </Card>
+
+      <Card>
+        <H2>Level Up mode</H2>
+        <Row style={{ justifyContent: 'space-between', flexWrap: 'nowrap' }}>
+          <Body style={{ flex: 1 }}>Show levels, ranks, stats and titles earned from your training</Body>
+          <Toggle label="Level Up mode" value={s.levelMode} onValueChange={(v) => {
+              set({ levelMode: v });
+              setLevelMode(v);
+            }}
+          />
+        </Row>
+        <Small>An optional game-style layer. Every workout earns EXP, and your level, E to S rank, stats and titles are worked out from everything you’ve already logged. The whole app switches to a dark HUD look, and your status shows on Train, Progress and the workout summary. Programs and recommendations don’t change, and turning it off puts everything back.</Small>
+        {s.levelMode ? <Button compact variant="secondary" icon="flash-outline" title="Open status" onPress={() => router.push('/level')} /> : null}
       </Card>
 
       <Card>

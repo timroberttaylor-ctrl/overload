@@ -1,9 +1,11 @@
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { View } from 'react-native';
 
+import { LevelReward } from '@/components/level/level-reward';
 import { Body, Button, Card, Display, Eyebrow, H2, Icon, Row, Screen, Small, Stat, StatStrip } from '@/components/ui';
 import { describePR } from '@/core/records';
 import { formatWeight } from '@/core/units';
+import { sessionXp } from '@/db/repositories/leveling';
 import { getSessionSummary } from '@/db/repositories/sessions';
 import { getSettings } from '@/db/repositories/settings';
 import { useDbQuery } from '@/hooks/use-db-query';
@@ -12,9 +14,12 @@ import { useTheme } from '@/hooks/use-theme';
 export default function SummaryScreen() {
   const t = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [data] = useDbQuery((db) => ({ summary: getSessionSummary(db, id), unit: getSettings(db).units }));
+  const [data] = useDbQuery((db) => {
+    const settings = getSettings(db);
+    return { summary: getSessionSummary(db, id), unit: settings.units, reward: settings.levelMode ? sessionXp(db, id) : undefined };
+  });
   if (!data?.summary) return null;
-  const { summary: s, unit } = data;
+  const { summary: s, unit, reward } = data;
   const fmt = (kg: number) => formatWeight(kg, unit);
 
   return (
@@ -35,6 +40,8 @@ export default function SummaryScreen() {
           <Stat value={fmt(s.volumeKg).replace(` ${unit}`, '')} label={`Volume ${unit}`} />
         </StatStrip>
       </Card>
+
+      {reward ? <LevelReward reward={reward} /> : null}
 
       {s.prs.length ? (
         <Card style={{ borderColor: t.accent, borderWidth: 1 }}>
@@ -74,6 +81,7 @@ export default function SummaryScreen() {
       ) : null}
 
       <Button title="Done" onPress={() => router.navigate('/')} />
+      {reward ? <Button title="View status" variant="secondary" icon="flash-outline" onPress={() => router.push('/level')} /> : null}
       <Button title="View or edit the log" variant="ghost" onPress={() => router.replace({ pathname: '/session/[id]', params: { id: s.sessionId } })} />
     </Screen>
   );

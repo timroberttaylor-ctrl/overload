@@ -7,7 +7,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getDb } from '@/db/client';
 import { needsOnboarding } from '@/db/repositories/onboarding';
-import { useTheme } from '@/hooks/use-theme';
+import { Fonts } from '@/constants/theme';
+import { useHud, useTheme } from '@/hooks/use-theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 const ICONS: Record<string, [IconName, IconName]> = {
@@ -20,6 +21,7 @@ const ICONS: Record<string, [IconName, IconName]> = {
 
 export default function TabLayout() {
   const t = useTheme();
+  const hud = useHud();
   // Respect the iPhone home indicator (and Android gesture bar) instead of a fixed height.
   const bottom = useSafeAreaInsets().bottom;
   // Brand-new users get first-run setup; checked once when the tabs mount.
@@ -37,7 +39,7 @@ export default function TabLayout() {
         headerShown: false,
         tabBarActiveTintColor: t.accent,
         tabBarInactiveTintColor: t.textSecondary,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
+        tabBarLabelStyle: hud ? { fontSize: 10, fontWeight: '700', fontFamily: Fonts?.mono, letterSpacing: 1, textTransform: 'uppercase' } : { fontSize: 11, fontWeight: '700' },
         tabBarStyle: { backgroundColor: t.background, borderTopColor: t.border, borderTopWidth: StyleSheet.hairlineWidth, height: 56 + Math.max(bottom, 8), paddingTop: 6, paddingBottom: Math.max(bottom, 8) },
         tabBarIcon: ({ color, focused }) => <Ionicons name={(ICONS[route.name] ?? ['ellipse', 'ellipse-outline'])[focused ? 0 : 1]} size={22} color={color as string} />,
       })}>

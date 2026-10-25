@@ -17,6 +17,8 @@ export type AppSettings = {
   onboarded: boolean;
   /** Save finished workouts to Apple Health (iOS installed builds) */
   appleHealth: boolean;
+  /** Optional RPG-style levels, ranks and titles worked out from the training log */
+  levelMode: boolean;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -28,6 +30,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   restCountdownSound: true,
   onboarded: false,
   appleHealth: false,
+  levelMode: false,
 };
 
 const KEYS = Object.keys(DEFAULT_SETTINGS) as (keyof AppSettings)[];
@@ -42,6 +45,7 @@ const VALID: { [K in keyof AppSettings]: (v: unknown) => v is AppSettings[K] } =
   restCountdownSound: (v): v is boolean => typeof v === 'boolean',
   onboarded: (v): v is boolean => typeof v === 'boolean',
   appleHealth: (v): v is boolean => typeof v === 'boolean',
+  levelMode: (v): v is boolean => typeof v === 'boolean',
 };
 
 /**

@@ -4,8 +4,9 @@ import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Switch,
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { KEYBOARD_DONE_ID } from '@/components/keyboard-done';
+import { HudCorners, MONO } from '@/components/level/system-panel';
 import { Radius, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { useHud, useTheme } from '@/hooks/use-theme';
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -34,22 +35,31 @@ export function Screen({ children, scroll = true, edges = ['top'], padded = true
 /** Small uppercase label above a title, e.g. "WEEK 2 · DAY 9". */
 export function Eyebrow({ children, color, style }: { children: ReactNode; color?: string; style?: TextStyle }) {
   const t = useTheme();
-  return <Text style={[styles.eyebrow, { color: color ?? t.textSecondary }, style]}>{children}</Text>;
+  const hud = useHud();
+  return (
+    <Text style={[styles.eyebrow, { color: color ?? t.textSecondary }, hud && styles.hudEyebrow, style]}>
+      {hud ? '◆ ' : null}
+      {children}
+    </Text>
+  );
 }
 
 export function Display({ children, style }: { children: ReactNode; style?: TextStyle }) {
   const t = useTheme();
-  return <Text style={[styles.display, { color: t.text }, style]}>{children}</Text>;
+  const hud = useHud();
+  return <Text style={[styles.display, { color: t.text }, hud && glow(t.accent), style]}>{children}</Text>;
 }
 
 export function H1({ children, style }: { children: ReactNode; style?: TextStyle }) {
   const t = useTheme();
-  return <Text style={[styles.h1, { color: t.text }, style]}>{children}</Text>;
+  const hud = useHud();
+  return <Text style={[styles.h1, { color: t.text }, hud && glow(t.accent), style]}>{children}</Text>;
 }
 
 export function H2({ children, style }: { children: ReactNode; style?: TextStyle }) {
   const t = useTheme();
-  return <Text style={[styles.h2, { color: t.text }, style]}>{children}</Text>;
+  const hud = useHud();
+  return <Text style={[styles.h2, { color: t.text }, hud && styles.hudH2, style]}>{children}</Text>;
 }
 
 export function Body({ children, muted, style }: { children: ReactNode; muted?: boolean; style?: TextStyle }) {
@@ -64,10 +74,19 @@ export function Small({ children, muted = true, style }: { children: ReactNode; 
 
 export function Card({ children, onPress, style, raised }: { children: ReactNode; onPress?: () => void; style?: ViewStyle; raised?: boolean }) {
   const t = useTheme();
-  const base = [styles.card, { backgroundColor: raised ? t.surfaceRaised : t.backgroundElement, borderColor: t.border }, style];
-  if (!onPress) return <View style={base}>{children}</View>;
+  const hud = useHud();
+  const base = [styles.card, { backgroundColor: raised ? t.surfaceRaised : t.backgroundElement, borderColor: t.border }, hud && [styles.hudCard, { borderColor: t.accent + '38' }], style];
+  const corners = hud ? <HudCorners color={t.accent} /> : null;
+  if (!onPress)
+    return (
+      <View style={base}>
+        {corners}
+        {children}
+      </View>
+    );
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [base, pressed && { opacity: 0.75 }]} accessibilityRole="button">
+      {corners}
       {children}
     </Pressable>
   );
@@ -120,6 +139,7 @@ export function Button({
   style?: ViewStyle;
 }) {
   const t = useTheme();
+  const hud = useHud();
   const bg = variant === 'primary' ? t.accent : variant === 'danger' ? t.danger : variant === 'secondary' ? t.backgroundSelected : 'transparent';
   const fg = variant === 'primary' ? t.accentText : variant === 'danger' ? '#fff' : variant === 'ghost' ? t.accent : t.text;
   return (
@@ -132,18 +152,21 @@ export function Button({
         styles.button,
         compact && styles.buttonCompact,
         { backgroundColor: bg, opacity: disabled ? 0.35 : pressed ? 0.8 : 1 },
-        variant === 'ghost' && { borderWidth: 1, borderColor: t.border },
+        variant === 'ghost' && { borderWidth: 1, borderColor: hud ? t.accent + '55' : t.border },
+        hud && styles.hudButton,
+        hud && variant === 'primary' && { shadowColor: t.accent, shadowOpacity: 0.6, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
         style,
       ]}
     >
       {icon ? <Icon name={icon} size={compact ? 16 : 18} color={fg} /> : null}
-      <Text style={[styles.buttonText, compact && { fontSize: 14 }, { color: fg }]}>{title}</Text>
+      <Text style={[styles.buttonText, compact && { fontSize: 14 }, { color: fg }, hud && styles.hudButtonText, hud && compact && { fontSize: 12 }]}>{title}</Text>
     </Pressable>
   );
 }
 
 export function Pill({ label, active, onPress, icon, dot }: { label: string; active?: boolean; onPress?: () => void; icon?: IconName; dot?: string }) {
   const t = useTheme();
+  const hud = useHud();
   const bg = active ? (dot ?? t.accent) : t.backgroundSelected;
   return (
     <Pressable
@@ -151,7 +174,7 @@ export function Pill({ label, active, onPress, icon, dot }: { label: string; act
       disabled={!onPress}
       accessibilityRole={onPress ? 'button' : undefined}
       accessibilityState={{ selected: !!active }}
-      style={[styles.pill, { backgroundColor: bg }]}
+      style={[styles.pill, { backgroundColor: bg }, hud && { borderRadius: 4 }]}
     >
       {icon ? <Icon name={icon} size={13} color={active ? t.accentText : t.textSecondary} /> : null}
       {dot && !active ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: dot }} /> : null}
@@ -177,9 +200,10 @@ const NUMERIC_KEYBOARDS = new Set(['number-pad', 'decimal-pad', 'numeric', 'phon
 
 export function Field(props: TextInputProps) {
   const t = useTheme();
+  const hud = useHud();
   // iOS number pads have no Return key: attach the shared "Done" bar so the keyboard can be closed.
   const accessory = props.keyboardType && NUMERIC_KEYBOARDS.has(props.keyboardType) ? KEYBOARD_DONE_ID : undefined;
-  return <TextInput placeholderTextColor={t.textSecondary} inputAccessoryViewID={accessory} {...props} style={[styles.field, { color: t.text, borderColor: t.border, backgroundColor: t.backgroundElement }, props.style]} />;
+  return <TextInput placeholderTextColor={t.textSecondary} inputAccessoryViewID={accessory} {...props} style={[styles.field, { color: t.text, borderColor: t.border, backgroundColor: t.backgroundElement }, hud && { borderRadius: 4, borderColor: t.accent + '44' }, props.style]} />;
 }
 
 export function Row({ children, gap = Spacing.two, style }: { children: ReactNode; gap?: number; style?: ViewStyle }) {
@@ -189,10 +213,11 @@ export function Row({ children, gap = Spacing.two, style }: { children: ReactNod
 /** Big number with a caption, used in stat strips. */
 export function Stat({ value, label, align = 'center' }: { value: string; label: string; align?: 'center' | 'left' }) {
   const t = useTheme();
+  const hud = useHud();
   return (
     <View style={{ flex: 1, alignItems: align === 'center' ? 'center' : 'flex-start', gap: 2 }}>
-      <Text style={[styles.statValue, { color: t.text }]}>{value}</Text>
-      <Text style={[styles.statLabel, { color: t.textSecondary }]}>{label}</Text>
+      <Text style={[styles.statValue, { color: t.text }, hud && { fontFamily: MONO }]}>{value}</Text>
+      <Text style={[styles.statLabel, { color: t.textSecondary }, hud && { fontFamily: MONO }]}>{label}</Text>
     </View>
   );
 }
@@ -209,9 +234,11 @@ export function Divider() {
 
 export function ProgressBar({ value, color }: { value: number; color?: string }) {
   const t = useTheme();
+  const hud = useHud();
+  const c = color ?? t.accent;
   return (
-    <View style={[styles.track, { backgroundColor: t.backgroundSelected }]}>
-      <View style={[styles.fill, { width: `${Math.max(0, Math.min(1, value)) * 100}%`, backgroundColor: color ?? t.accent }]} />
+    <View style={[styles.track, { backgroundColor: t.backgroundSelected }, hud && { borderRadius: 1 }]}>
+      <View style={[styles.fill, { width: `${Math.max(0, Math.min(1, value)) * 100}%`, backgroundColor: c }, hud && { borderRadius: 1, shadowColor: c, shadowOpacity: 0.9, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } }]} />
     </View>
   );
 }
@@ -265,7 +292,18 @@ const styles = StyleSheet.create({
   statStrip: { flexDirection: 'row', borderTopWidth: StyleSheet.hairlineWidth, paddingTop: Spacing.three, marginTop: Spacing.one },
   track: { height: 6, borderRadius: 3, overflow: 'hidden' },
   fill: { height: 6, borderRadius: 3 },
+  // Level Up mode (HUD) overrides
+  hudEyebrow: { fontFamily: MONO, letterSpacing: 2 },
+  hudH2: { fontFamily: MONO, fontSize: 15, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase' },
+  hudCard: { borderRadius: 4, borderWidth: 1 },
+  hudButton: { borderRadius: 4 },
+  hudButtonText: { fontFamily: MONO, fontSize: 14, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase' },
 });
+
+/** Soft neon glow on headings in Level Up mode. */
+function glow(color: string): TextStyle {
+  return { textShadowColor: color + 'AA', textShadowRadius: 12, textShadowOffset: { width: 0, height: 0 } };
+}
 
 /** On/off switch in the app's green instead of the platform default. */
 export function Toggle({ value, onValueChange, label }: { value: boolean; onValueChange: (v: boolean) => void; label?: string }) {
