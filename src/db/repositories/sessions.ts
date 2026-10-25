@@ -9,7 +9,7 @@ import { and, asc, desc, eq, gt, gte, inArray, isNull, lt, ne } from 'drizzle-or
 
 import { addDays } from '@/core/dates';
 import { uuid } from '@/core/ids';
-import { bestE1RM, nextTarget, pctOf1RM, sessionWeight, warmupSets, type Adjustments, type Prescription, type SessionResult, type Target } from '@/core/overload';
+import { bestE1RM, easedWeight, nextTarget, pctOf1RM, sessionWeight, warmupSets, type Adjustments, type Prescription, type SessionResult, type Target } from '@/core/overload';
 import { roundToIncrement } from '@/core/units';
 import { findPRs, volumeKg, type DatedSet, type PR } from '@/core/records';
 
@@ -412,6 +412,34 @@ export function logSet(db: DB, setId: string, v: { weightKg: number; reps: numbe
 }
 
 /** Edit values without changing whether the set is done (also used to correct past sessions). */
+/**
+ * After a working set lands a full RPE point or more over its target, lighten the rest of
+ * that exercise's unlogged working sets (the ones still at the weight just used, so your own
+ * edits are left alone). Returns what changed, for the player to tell you, or null.
+ */
+export function easeRemainingSets(db: DB, setId: string, now = Date.now()): { fromKg: number; toKg: number; count: number; rpe: number; targetRpe: number } | null {
+  const set = db.select().from(setLogs).where(eq(setLogs.id, setId)).get();
+  if (!set || !set.completed || set.setType === 'warmup' || set.weightKg == null || set.reps == null) return null;
+  const ex = db.select().from(exercises).where(eq(exercises.id, set.exerciseId)).get();
+  if (!ex) return null;
+  const toKg = easedWeight({ weightKg: set.weightKg, reps: set.reps, rpe: set.rpe, targetRpe: set.targetRpe, stepKg: roundStepFor(ex, getSettings(db)) });
+  if (toKg == null) return null;
+  const where = and(
+    eq(setLogs.sessionId, set.sessionId),
+    eq(setLogs.exerciseOrder, set.exerciseOrder),
+    eq(setLogs.exerciseId, set.exerciseId),
+    eq(setLogs.completed, false),
+    eq(setLogs.weightKg, set.weightKg),
+    isNull(setLogs.deletedAt),
+    ne(setLogs.setType, 'warmup'),
+    gt(setLogs.setIndex, set.setIndex),
+  );
+  const count = db.select({ id: setLogs.id }).from(setLogs).where(where).all().length;
+  if (!count) return null;
+  db.update(setLogs).set({ weightKg: toKg, updatedAt: now }).where(where).run();
+  return { fromKg: set.weightKg, toKg, count, rpe: set.rpe!, targetRpe: set.targetRpe! };
+}
+
 export function updateSet(db: DB, setId: string, v: { weightKg?: number | null; reps?: number | null; rpe?: number | null }): void {
   assertEditable(db, setId);
   validate(v);

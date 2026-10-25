@@ -16,6 +16,7 @@ import { getSettings, updateSettings, type AppSettings } from '@/db/repositories
 import { useDbQuery } from '@/hooks/use-db-query';
 
 const PLATE_STEPS = [1, 1.25, 2.5, 5];
+const CHANGEOVER_STEPS = [0, 10, 15, 20, 30];
 
 export default function SettingsScreen() {
   const t = useTheme();
@@ -138,6 +139,13 @@ export default function SettingsScreen() {
           <Body style={{ flex: 1 }}>Count down the last 5 seconds of rest (the final beep means go)</Body>
           <Toggle value={s.restCountdownSound} onValueChange={(v) => set({ restCountdownSound: v })} />
         </Row>
+        <Body>Changeover between superset exercises</Body>
+        <Row>
+          {CHANGEOVER_STEPS.map((c) => (
+            <Pill key={c} label={c ? `${c} s` : 'Off'} active={s.supersetChangeoverS === c} onPress={() => set({ supersetChangeoverS: c })} />
+          ))}
+        </Row>
+        <Small>A short countdown from one superset exercise to the next; the full rest comes after the round.</Small>
       </Card>
 
       <Card>

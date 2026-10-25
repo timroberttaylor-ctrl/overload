@@ -13,6 +13,8 @@ export type AppSettings = {
   autoAdvanceAfterLog: boolean;
   autoAdvanceAfterRest: boolean;
   restCountdownSound: boolean;
+  /** Countdown between exercises of a superset round, seconds (0 = straight on) */
+  supersetChangeoverS: number;
   /** First-run setup finished or skipped */
   onboarded: boolean;
   /** Save finished workouts to Apple Health (iOS installed builds) */
@@ -26,6 +28,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   autoAdvanceAfterLog: true,
   autoAdvanceAfterRest: true,
   restCountdownSound: true,
+  supersetChangeoverS: 15,
   onboarded: false,
   appleHealth: false,
 };
@@ -40,6 +43,7 @@ const VALID: { [K in keyof AppSettings]: (v: unknown) => v is AppSettings[K] } =
   autoAdvanceAfterLog: (v): v is boolean => typeof v === 'boolean',
   autoAdvanceAfterRest: (v): v is boolean => typeof v === 'boolean',
   restCountdownSound: (v): v is boolean => typeof v === 'boolean',
+  supersetChangeoverS: (v): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 120,
   onboarded: (v): v is boolean => typeof v === 'boolean',
   appleHealth: (v): v is boolean => typeof v === 'boolean',
 };

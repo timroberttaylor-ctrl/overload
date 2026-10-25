@@ -16,12 +16,14 @@ import { Body, Button, Card, Eyebrow, H2, Icon, ProgressBar, Row, Small } from '
 import { isoDate } from '@/core/dates';
 import { describeLoading, loadBar } from '@/core/plates';
 import { describePR } from '@/core/records';
+import { nextSet, restKindAfter, withLogged } from '@/core/session-flow';
 import { formatWeight, kgToDisplay } from '@/core/units';
 import { getDb } from '@/db/client';
 import { getSettings } from '@/db/repositories/settings';
 import {
   addSet,
   discardSession,
+  easeRemainingSets,
   exerciseHistory,
   headlinePR,
   prForSet,
@@ -65,6 +67,13 @@ function Elapsed({ since }: { since: number }) {
 
 const cardKey = (g: ExerciseGroup) => `${g.exerciseOrder}:${g.exercise.id}`;
 
+/** "1–2 reps" for RPE 8.5, "2 reps" for RPE 8 */
+function rirText(rpe: number): string {
+  const r = 10 - rpe;
+  if (Number.isInteger(r)) return `${r} rep${r === 1 ? '' : 's'}`;
+  return `${Math.floor(r)}–${Math.ceil(r)} reps`;
+}
+
 function setLabels(sets: SetLog[]): string[] {
   let n = 0;
   return sets.map((s) => (s.setType === 'warmup' ? 'W' : String(++n)));
@@ -79,6 +88,8 @@ export default function SessionScreen() {
     settings: getSettings(db),
   }));
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
+  /** Each new rest gets a fresh timer (its own start time, title and lock-screen activity) */
+  const [rest, setRest] = useState<{ key: number; title: string }>({ key: 0, title: 'Rest' });
   const [toast, setToast] = useState<PrToastData | null>(null);
   /** Sets that beat a record when logged in this visit (shown with a trophy) */
   const [prSets, setPrSets] = useState<Set<string>>(() => new Set());
@@ -110,8 +121,11 @@ export default function SessionScreen() {
   const live = session.status === 'in_progress';
   const counts = sessionCounts(detail);
   const allSets = groups.flatMap((g) => g.sets);
-  const nextSetId = allSets.find((s) => !s.completed)?.id;
-  const nextGroup = groups.find((g) => g.sets.some((s) => s.id === nextSetId));
+  // Superset-aware: A1 → A2 → A1 → A2…, not every set of A1 first.
+  const upNext = nextSet(groups);
+  const nextSetId = upNext?.setId;
+  const nextGroup = upNext ? groups[upNext.groupIndex] : undefined;
+  const rpeTargets = [...new Set(allSets.filter((s) => s.setType !== 'warmup' && s.targetRpe != null && s.targetRpe < 10).map((s) => s.targetRpe!))];
   const nextLabel = nextGroup ? `${nextGroup.exercise.name} · set ${setLabels(nextGroup.sets)[nextGroup.sets.findIndex((s) => s.id === nextSetId)]}` : undefined;
 
   const guard = (label: string, fn: () => void) => {
@@ -140,27 +154,35 @@ export default function SessionScreen() {
         reps: v.reps,
         rpe: v.rpe,
       });
+      const fmt = (kg: number) => formatWeight(kg, unit);
+      // Effort ran well over target: lighten the rest of this exercise so the sets stay at target RPE.
+      const eased = easeRemainingSets(getDb(), set.id);
+      const easedText = eased
+        ? `RPE ${eased.rpe} vs target ${eased.targetRpe}, so the next ${eased.count === 1 ? 'set drops' : `${eased.count} sets drop`} to ${fmt(eased.toKg)}. Feeling fresh? Change it back.`
+        : null;
       const pr = headlinePR(prForSet(getDb(), set.id));
       if (pr) {
-        const fmt = (kg: number) => formatWeight(kg, unit);
         setPrSets((p) => new Set(p).add(set.id));
-        setToast({ key: Date.now(), title: `New PR: ${fmt(v.weightKg)} × ${v.reps}`, detail: describePR(pr, fmt) });
+        setToast({ key: Date.now(), title: `New PR: ${fmt(v.weightKg)} × ${v.reps}`, detail: easedText ?? describePR(pr, fmt) });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       } else {
+        if (eased && easedText) setToast({ key: Date.now(), title: `Lighter for the rest: ${fmt(eased.toKg)}`, detail: easedText });
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
       }
-      // Rest only after the last exercise of a superset round
+      // Superset round: a short changeover to the next exercise, the full rest after the last one.
       const idx = groups.indexOf(group);
-      const nextInSeries = groups.slice(idx + 1).find((g) => g.series && g.series === group.series && g.sets.some((s) => !s.completed));
-      const restS = nextInSeries ? 0 : (set.restS ?? group.restS);
+      const after = withLogged(groups, set.id);
+      const changeover = restKindAfter(after, idx) === 'changeover';
+      const restS = changeover ? settings.supersetChangeoverS : (set.restS ?? group.restS);
+      setRest((r) => ({ key: r.key + 1, title: changeover ? 'Next' : 'Rest' }));
       setRestEndsAt(restS > 0 ? Date.now() + restS * 1000 : null);
       // Auto-advance: bring the next exercise into view once this one is finished.
-      const next = allSets.find((x) => !x.completed && x.id !== set.id);
-      const nextGroup = next ? groups.find((g) => g.sets.some((x) => x.id === next.id)) : undefined;
+      const next = nextSet(after);
+      const nextGroup = next ? groups[next.groupIndex] : undefined;
       pendingScroll.current = null;
       if (nextGroup && nextGroup !== group) {
         const key = cardKey(nextGroup);
-        if (settings.autoAdvanceAfterLog || restS === 0) {
+        if (settings.autoAdvanceAfterLog || changeover || restS === 0) {
           if (settings.autoAdvanceAfterLog || settings.autoAdvanceAfterRest) setTimeout(() => scrollToCard(key), 150);
         } else if (settings.autoAdvanceAfterRest) pendingScroll.current = key;
       }
@@ -247,6 +269,12 @@ export default function SessionScreen() {
           <Small>
             {counts.done} of {counts.planned} working sets
           </Small>
+          {live && rpeTargets.length ? (
+            <Small>
+              {`RPE ${rpeTargets.length === 1 ? rpeTargets[0] : 'targets'} ${rpeTargets.length === 1 ? `means about ${rirText(rpeTargets[0])} left in the tank. ` : 'show how hard each set should feel. '}`}
+              Keep the weight while a set lands within 1 of target; if one goes higher, OVRLD lightens the rest of that exercise.
+            </Small>
+          ) : null}
         </View>
 
         {groups.map((g, gi, all) => {
@@ -450,7 +478,7 @@ export default function SessionScreen() {
       </ScrollView>
 
       {live && restEndsAt ? (
-        <RestTimer endsAt={restEndsAt} sound={settings.restCountdownSound} onChange={(v) => (v == null ? endRest() : setRestEndsAt(v))} onDone={onRestDone} nextLabel={nextLabel} />
+        <RestTimer key={rest.key} title={rest.title} endsAt={restEndsAt} sound={settings.restCountdownSound} onChange={(v) => (v == null ? endRest() : setRestEndsAt(v))} onDone={onRestDone} nextLabel={nextLabel} />
       ) : null}
 
       <PrToast toast={toast} onHide={hideToast} />

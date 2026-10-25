@@ -86,6 +86,28 @@ export function pctOf1RM(reps: number, rpe: number): number {
   return 1 / (1 + effective / 30);
 }
 
+/** How far over its target RPE a set must land before the rest of the exercise gets lighter. */
+export const EASE_RPE_OVER = 1;
+
+/**
+ * In-session load drop. Fatigue builds over a straight-sets exercise, so the same weight can
+ * go from RPE 8.5 on set 1 to RPE 10 by set 5. The target RPE is the effort to work at, so
+ * while sets land within 1 of it you keep the weight; once one lands a full point or more
+ * over, the remaining sets drop to the load that would bring them back to target at the
+ * same reps (at least one step lighter, never more than 10 %). Returns null for no change.
+ */
+export function easedWeight(args: { weightKg: number; reps: number; rpe: number | null | undefined; targetRpe: number | null | undefined; stepKg: number }): number | null {
+  const { weightKg, reps, rpe, targetRpe, stepKg } = args;
+  if (rpe == null || targetRpe == null || targetRpe >= 10 || weightKg <= 0 || reps <= 0) return null;
+  if (rpe < targetRpe + EASE_RPE_OVER) return null;
+  const ideal = (weightKg * pctOf1RM(reps, targetRpe)) / pctOf1RM(reps, rpe);
+  const oneStep = roundToIncrement(weightKg - stepKg, stepKg, 'nearest');
+  // Light loads: one step can be more than 10 %, so one step is always allowed.
+  const floor = Math.min(roundToIncrement(weightKg * 0.9, stepKg, 'up'), oneStep);
+  const next = Math.max(floor, Math.min(roundToIncrement(ideal, stepKg, 'nearest'), oneStep));
+  return next > 0 && next < weightKg ? next : null;
+}
+
 export function bestE1RM(sets: LoggedSet[], assumedRpe?: number | null): number {
   return sets.reduce((m, s) => Math.max(m, estimate1RM(s.weightKg, s.reps, s.rpe ?? assumedRpe)), 0);
 }

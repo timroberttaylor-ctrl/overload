@@ -30,6 +30,7 @@ export function RestTimer({
   onDone,
   sound = true,
   nextLabel,
+  title = 'Rest',
 }: {
   endsAt: number;
   onChange: (endsAt: number | null) => void;
@@ -37,6 +38,8 @@ export function RestTimer({
   sound?: boolean;
   /** What comes next, for the locked-phone alert ("Bench press · set 3") */
   nextLabel?: string;
+  /** "Rest", or "Next" for the short changeover inside a superset round */
+  title?: string;
 }) {
   const t = useTheme();
   const insets = useSafeAreaInsets();
@@ -48,11 +51,11 @@ export function RestTimer({
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 250);
-    // Mix with (and briefly duck) the lifter's music instead of stopping it.
+    // Play the beeps over the lifter's music without touching it. 'duckOthers' lowered other
+    // apps for as long as our audio session stayed active, which on iOS outlived the timer.
     setAudioModeAsync({
       playsInSilentMode: true,
-      interruptionMode: 'duckOthers',
-      interruptionModeAndroid: 'duckOthers',
+      interruptionMode: 'mixWithOthers',
     }).catch(() => {});
     return () => clearInterval(id);
   }, []);
@@ -95,8 +98,8 @@ export function RestTimer({
   const ss = String(left % 60).padStart(2, '0');
   return (
     <View style={[styles.bar, { backgroundColor: t.accent, bottom: 12 + insets.bottom }]}>
-      <Text style={[styles.time, { color: t.accentText }]} accessibilityRole="timer" accessibilityLabel={`Rest, ${mm} minutes ${left % 60} seconds left`}>
-        Rest {mm}:{ss}
+      <Text style={[styles.time, { color: t.accentText }]} accessibilityRole="timer" accessibilityLabel={`${title}, ${mm} minutes ${left % 60} seconds left`}>
+        {title} {mm}:{ss}
       </Text>
       <View style={styles.actions}>
         <Btn label="−15" a11y="Remove 15 seconds" onPress={() => onChange(endsAt - 15_000)} />
