@@ -21,6 +21,11 @@ export function logBodyweight(db: DB, date: string, kg: number, source: HealthSo
   return db.select().from(bodyweights).where(eq(bodyweights.id, date)).get()!;
 }
 
+/** Remove a weigh-in (soft delete, so sync and backups stay consistent). */
+export function deleteBodyweight(db: DB, date: string, now = Date.now()): void {
+  db.update(bodyweights).set({ deletedAt: now, updatedAt: now }).where(eq(bodyweights.id, date)).run();
+}
+
 export function latestBodyweight(db: DB, onOrBefore?: string): Bodyweight | undefined {
   const conds = [isNull(bodyweights.deletedAt)];
   if (onOrBefore) conds.push(lte(bodyweights.date, onOrBefore));

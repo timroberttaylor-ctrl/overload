@@ -19,6 +19,8 @@ export type AppSettings = {
   onboarded: boolean;
   /** Save finished workouts to Apple Health (iOS installed builds) */
   appleHealth: boolean;
+  /** Optional RPG-style levels, ranks and titles worked out from the training log */
+  levelMode: boolean;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -31,6 +33,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   supersetChangeoverS: 15,
   onboarded: false,
   appleHealth: false,
+  levelMode: false,
 };
 
 const KEYS = Object.keys(DEFAULT_SETTINGS) as (keyof AppSettings)[];
@@ -46,6 +49,7 @@ const VALID: { [K in keyof AppSettings]: (v: unknown) => v is AppSettings[K] } =
   supersetChangeoverS: (v): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 120,
   onboarded: (v): v is boolean => typeof v === 'boolean',
   appleHealth: (v): v is boolean => typeof v === 'boolean',
+  levelMode: (v): v is boolean => typeof v === 'boolean',
 };
 
 /**

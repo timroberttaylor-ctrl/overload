@@ -1,13 +1,16 @@
 import { router } from 'expo-router';
 import { View } from 'react-native';
 
-import { MiniBars } from '@/components/mini-bars';
+import { StatusWindow } from '@/components/level/status-window';
+import { WeightChart } from '@/components/weight-chart';
+import { withTrend } from '@/core/bodyweight';
 import { VolumeCard } from '@/components/volume-card';
 import { ExerciseThumb } from '@/components/exercise-thumb';
 import { Body, Card, Display, Eyebrow, H1, ListRow, Screen, SectionHeader, Small, Stat, StatStrip, Tag } from '@/components/ui';
 import { addDays, isoDate } from '@/core/dates';
 import { formatWeight } from '@/core/units';
 import { listBodyweights } from '@/db/repositories/body';
+import { getLevelProfile } from '@/db/repositories/leveling';
 import { getActiveEnrolment } from '@/db/repositories/enrolments';
 import { currentProgramWeek, weekVolume } from '@/db/repositories/planner';
 import { listLoggedExercises, listSessions } from '@/db/repositories/sessions';
@@ -20,8 +23,9 @@ export default function ProgressScreen() {
   const [data] = useDbQuery((db) => ({
     sessions: listSessions(db, 30),
     lifts: listLoggedExercises(db).slice(0, 12),
-    weights: listBodyweights(db).slice(-30),
+    weights: withTrend(listBodyweights(db).map((b) => ({ date: b.date, kg: b.kg }))).slice(-30),
     unit: getSettings(db).units,
+    level: getSettings(db).levelMode ? getLevelProfile(db) : null,
     since: addDays(isoDate(), -30),
     volume: (() => {
       const e = getActiveEnrolment(db);
@@ -29,7 +33,7 @@ export default function ProgressScreen() {
     })(),
   }));
   if (!data) return null;
-  const { sessions, lifts, weights, unit, since, volume } = data;
+  const { sessions, lifts, weights, unit, since, volume, level } = data;
   const last30 = sessions.filter((s) => s.date >= since);
   const change = weights.length > 1 ? weights[weights.length - 1].kg - weights[0].kg : 0;
 
@@ -39,6 +43,8 @@ export default function ProgressScreen() {
         <Eyebrow color={t.accent}>Progress</Eyebrow>
         <H1>Your training</H1>
       </View>
+
+      {level ? <StatusWindow profile={level} compact onPress={() => router.push('/level')} /> : null}
 
       <Card raised>
         <StatStrip>
@@ -52,14 +58,14 @@ export default function ProgressScreen() {
 
       {weights.length > 1 ? (
         <>
-          <SectionHeader title="Body weight" />
-          <Card>
+          <SectionHeader title="Body weight" action={{ label: 'History', onPress: () => router.push('/body-weight') }} />
+          <Card onPress={() => router.push('/body-weight')}>
             <Display style={{ fontSize: 28 }}>{formatWeight(weights[weights.length - 1].kg, unit)}</Display>
             <Small>
               {change >= 0 ? '+' : '−'}
               {formatWeight(Math.abs(change), unit)} since {weights[0].date}
             </Small>
-            <MiniBars values={weights.map((w) => w.kg)} labels={weights.map((w) => w.date.slice(5))} />
+            <WeightChart points={weights} unit={unit} height={110} compact />
           </Card>
         </>
       ) : null}

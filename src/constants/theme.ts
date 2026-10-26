@@ -37,6 +37,23 @@ export const Colors = {
     danger: '#D64545',
     overlay: '#00000080',
   },
+  /** Level Up mode: the glowing blue "system window" look, always dark. */
+  hud: {
+    text: '#E6F0FF',
+    textSecondary: '#7D93B5',
+    background: '#05080F',
+    backgroundElement: '#0A1222',
+    backgroundSelected: '#13203A',
+    surfaceRaised: '#0D1830',
+    border: '#1C3358',
+    accent: '#3FA2FF',
+    accentDim: '#3FA2FF26',
+    accentText: '#020814',
+    success: '#3FA2FF',
+    warning: '#FFD166',
+    danger: '#FF5A6E',
+    overlay: '#000000C0',
+  },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;

@@ -3,18 +3,24 @@ import { useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
 
 import { DayPlanList } from '@/components/day-plan';
+import { TrainStatus, type DailyQuest } from '@/components/level/train-status';
 import { RecoveryCard } from '@/components/recovery-card';
 import { Body, Button, Card, Display, Eyebrow, Field, H1, H2, Icon, Row, Screen, SectionHeader, Small, Stat, StatStrip, Tag } from '@/components/ui';
 import { WeekStrip } from '@/components/week-strip';
+import { WeightChart } from '@/components/weight-chart';
+import { withTrend } from '@/core/bodyweight';
 import { addDays, isoDate } from '@/core/dates';
 import { displayToKg, formatWeight } from '@/core/units';
 import { getDb } from '@/db/client';
-import { latestBodyweight, logBodyweight } from '@/db/repositories/body';
+import { latestBodyweight, listBodyweights, logBodyweight } from '@/db/repositories/body';
 import { blockSummary, lastCompletedBlock } from '@/db/repositories/block';
 import { getActiveEnrolment, programDayPlan } from '@/db/repositories/enrolments';
 import { listHealthDays } from '@/db/repositories/health';
 import { reviewState } from '@/db/repositories/planner';
 import { PLAN_LABEL, changeSummary } from '@/core/planner';
+import { questReward, type LevelProfile } from '@/core/leveling';
+import { getLevelProfile } from '@/db/repositories/leveling';
+import type { DB } from '@/db/types';
 import { getTemplateDetail } from '@/db/repositories/programs';
 import { completeRestDay, discardSession, getInProgressSession, programWeek, sessionForProgramDay, startProgramSession } from '@/db/repositories/sessions';
 import { getSettings } from '@/db/repositories/settings';
@@ -36,8 +42,10 @@ export default function TrainScreen() {
     const template = enrolment ? getTemplateDetail(db, enrolment.templateId)?.template : undefined;
     const day = enrolment ? (selectedDay ?? enrolment.currentDayIndex) : 0;
     const plan = enrolment ? programDayPlan(db, enrolment, day) : undefined;
+    const settings = getSettings(db);
     return {
-      settings: getSettings(db),
+      settings,
+      level: settings.levelMode ? levelState(db, enrolment, today) : null,
       enrolment,
       template,
       plan,
@@ -47,6 +55,7 @@ export default function TrainScreen() {
       review: reviewState(db, enrolment),
       health: listHealthDays(db, addDays(today, -30), today),
       weight: latestBodyweight(db),
+      weightTrend: withTrend(listBodyweights(db, addDays(today, -60)).map((b) => ({ date: b.date, kg: b.kg }))).filter((p) => p.date >= addDays(today, -30)),
       finished: enrolment ? undefined : (() => {
         const done = lastCompletedBlock(db);
         return done ? blockSummary(db, done.id) : undefined;
@@ -56,7 +65,7 @@ export default function TrainScreen() {
   const [weightText, setWeightText] = useState('');
 
   if (!data) return null;
-  const { settings, enrolment, template, plan, week, dayLog, inProgress, weight, health, review, finished } = data;
+  const { settings, level, enrolment, template, plan, week, dayLog, inProgress, weight, weightTrend, health, review, finished } = data;
   const unit = settings.units;
   const fail = (title: string, e: unknown) => Alert.alert(title, e instanceof Error ? e.message : String(e));
 
@@ -149,6 +158,8 @@ export default function TrainScreen() {
           <H1>Train</H1>
         </View>
       )}
+
+      {level ? <TrainStatus profile={level.profile} quest={level.quest} onPress={() => router.push('/level')} /> : null}
 
       {/* In progress */}
       {inProgress ? (
@@ -344,7 +355,7 @@ export default function TrainScreen() {
       <RecoveryCard days={health} today={today} />
 
       {/* Shortcuts */}
-      <Row gap={12} style={{ flexWrap: 'nowrap' }}>
+      <Row gap={12} style={{ flexWrap: 'nowrap', alignItems: 'stretch' }}>
         <Card style={{ flex: 1 }} onPress={() => router.push('/library')}>
           <Icon name="library" size={22} color={t.accent} />
           <H2>Exercise library</H2>
@@ -358,15 +369,21 @@ export default function TrainScreen() {
       </Row>
 
       {/* Body weight */}
-      <SectionHeader title="Body weight" />
+      <SectionHeader title="Body weight" action={weight ? { label: 'History', onPress: () => router.push('/body-weight') } : undefined} />
       <Card>
-        <Row style={{ justifyContent: 'space-between' }}>
-          <View>
-            <Display style={{ fontSize: 28 }}>{weight ? formatWeight(weight.kg, unit) : '–'}</Display>
-            <Small>{weight ? `Last weigh-in ${weight.date}` : 'No weigh-ins yet'}</Small>
-          </View>
-          <Icon name="scale-outline" size={26} color={t.textSecondary} />
-        </Row>
+        <Pressable onPress={() => router.push('/body-weight')} accessibilityRole="button" accessibilityLabel="Body weight history" style={{ gap: 8 }}>
+          <Row style={{ justifyContent: 'space-between' }}>
+            <View>
+              <Display style={{ fontSize: 28 }}>{weight ? formatWeight(weight.kg, unit) : '–'}</Display>
+              <Small>
+                {weight ? `Last weigh-in ${weight.date}` : 'No weigh-ins yet'}
+                {weightTrend.length >= 2 ? ` · ${formatChange(weightTrend[weightTrend.length - 1].kg - weightTrend[0].kg, unit)} in 30 days` : ''}
+              </Small>
+            </View>
+            <Icon name="scale-outline" size={26} color={t.textSecondary} />
+          </Row>
+          {weightTrend.length >= 2 ? <WeightChart points={weightTrend} unit={unit} height={64} compact /> : null}
+        </Pressable>
         <Row style={{ flexWrap: 'nowrap' }}>
           <Field value={weightText} onChangeText={setWeightText} placeholder={`Today (${unit})`} keyboardType="decimal-pad" style={{ flex: 1 }} onSubmitEditing={saveWeight} />
           <Button title="Log" compact onPress={saveWeight} disabled={!weightText} />
@@ -374,4 +391,21 @@ export default function TrainScreen() {
       </Card>
     </Screen>
   );
+}
+
+/** Level Up mode: the profile plus today's quest (the workout due next, or what was cleared today). */
+function levelState(db: DB, enrolment: ReturnType<typeof getActiveEnrolment>, today: string): { profile: LevelProfile; quest?: DailyQuest } {
+  const profile = getLevelProfile(db, today);
+  const cleared = profile.log.find((l) => l.date === today);
+  if (cleared) return { profile, quest: { name: cleared.name, reward: cleared.xp, done: true } };
+  if (!enrolment) return { profile };
+  const next = programDayPlan(db, enrolment, enrolment.currentDayIndex);
+  if (next.day.isRest) return { profile, quest: { rest: true } };
+  const sets = next.slots.reduce((n, s) => n + s.workingSets, 0);
+  return { profile, quest: { name: next.day.name, reward: questReward(sets, profile.weekSessions), done: false } };
+}
+
+function formatChange(kg: number, unit: 'kg' | 'lb'): string {
+  const w = formatWeight(Math.abs(kg), unit);
+  return Math.abs(kg) < 0.05 ? `±${w}` : `${kg > 0 ? '+' : '−'}${w}`;
 }

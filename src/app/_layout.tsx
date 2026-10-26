@@ -19,6 +19,7 @@ export default function RootLayout() {
   const scheme = useSchemeName();
   const t = useTheme();
   const setAppearance = useAppearance((s) => s.setAppearance);
+  const setLevelMode = useAppearance((s) => s.setLevelMode);
   const [state, setState] = useState<{ ready: boolean; error?: string }>({ ready: false });
 
   useEffect(() => {
@@ -26,12 +27,14 @@ export default function RootLayout() {
     purgeExportCache(0);
     initDatabase(getDb())
       .then(() => {
-        setAppearance(getSettings(getDb()).appearance);
+        const saved = getSettings(getDb());
+        setAppearance(saved.appearance);
+        setLevelMode(saved.levelMode);
         setState({ ready: true });
       })
       .catch((e: unknown) => setState({ ready: false, error: e instanceof Error ? e.message : String(e) }))
       .finally(() => SplashScreen.hideAsync());
-  }, [setAppearance]);
+  }, [setAppearance, setLevelMode]);
 
   const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
   const navTheme: Theme = {
@@ -57,6 +60,9 @@ export default function RootLayout() {
           <Stack.Screen name="session/[id]" options={{ title: 'Workout' }} />
           <Stack.Screen name="session/summary" options={{ title: '', headerBackVisible: false, gestureEnabled: false }} />
           <Stack.Screen name="week-review" options={{ title: 'Week review' }} />
+          <Stack.Screen name="body-weight" options={{ title: 'Body weight' }} />
+          {/* One Status screen at most: tapping a status panel again returns to it instead of stacking copies. */}
+          <Stack.Screen name="level" options={{ title: 'Status' }} dangerouslySingular />
           <Stack.Screen name="program/complete" options={{ title: '' }} />
           <Stack.Screen name="welcome" options={{ headerShown: false, gestureEnabled: false }} />
         </Stack>
